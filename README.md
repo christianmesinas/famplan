@@ -1,2 +1,0 @@
-# famplan
-# manmanamanaman
