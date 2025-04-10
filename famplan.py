@@ -1,10 +1,9 @@
 import sqlalchemy as sa
 import sqlalchemy.orm as so
-from app import app, db, cli
+from app import db, cli, create_app
 from app.models import User, Post, Message, Notification, Task
 
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+app = create_app()
 
 
 @app.shell_context_processor

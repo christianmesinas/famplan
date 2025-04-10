@@ -4,11 +4,12 @@ from hashlib import md5
 from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
-from app import db, app
+from app import db  # Behoud db, want dit werkt met factory pattern
 import json
 import time
 import redis
 import rq
+from flask import current_app  # Gebruik current_app voor app-context
 
 class PaginatedAPIMixin(object):
     @staticmethod
@@ -151,7 +152,7 @@ class Notification(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(128), index=True)
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
-    timestamp: so.Mapped[float] = so.mapped_column(index=True,default=time.time)
+    timestamp: so.Mapped[float] = so.mapped_column(index=True, default=time.time)
     payload_json: so.Mapped[str] = so.mapped_column(sa.Text)
     user: so.Mapped[User] = so.relationship(back_populates='notifications')
 
@@ -168,7 +169,10 @@ class Task(db.Model):
 
     def get_rq_job(self):
         try:
-            rq_job = rq.job.Job.fetch(self.id, connection=app.redis)
+            # Gebruik current_app.config voor Redis-verbinding
+            redis_url = current_app.config['REDIS_URL']
+            redis_conn = redis.Redis.from_url(redis_url)
+            rq_job = rq.job.Job.fetch(self.id, connection=redis_conn)
         except (redis.exceptions.RedisError, rq.exceptions.NoSuchJobError):
             return None
         return rq_job
