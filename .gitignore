@@ -1,0 +1,51 @@
+# Python-specifieke bestanden
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.so
+.Python
+venv/
+env/
+
+# Flask-specifieke bestanden
+instance/
+app.db        # Je SQLite-database
+*.sqlite
+*.log         # Logbestanden
+static/uploads/  # Geüploade bestanden (indien van toepassing)
+
+# Configuratie en gevoelige data
+.env          # Omgevingsvariabelen (bijv. DATABASE_URL)
+*.env
+flaskenv
+*flaskenv
+secrets/
+config/local_config.py  # Lokale configuratie
+
+# Docker-specifieke bestanden
+Dockerfile.local
+*.dockerignore
+docker-compose.override.yml
+
+# Editor- en IDE-bestanden
+.vscode/
+.idea/
+*.sublime-*
+*.swp
+*.swo
+.DS_Store
+
+# Test- en coverage-bestanden
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+pytest_cache/
+
+# Overige tijdelijke bestanden
+*.bak
+*.tmp
+*.pid

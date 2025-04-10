@@ -1,0 +1,30 @@
+### docker start met env file
+
+# in famplan folder
+# docker run -p 5000:5000 --env-file .env famplan
+
+# bouw eerst een docker container
+# docker build -t famplan .
+
+
+##famplan Docker Container Beheer
+#Dit document beschrijft hoe je je Flask famplan-applicatie in een Docker-container kunt draaien, stoppen, en herstarten met een persistente database (app.db).
+
+##Vereisten
+#Docker geïnstalleerd op je systeem.
+#Een werkende famplan-image gebouwd met docker build -t famplan ..
+#Een .env-bestand met DATABASE_URL=sqlite:////app/app.db.
+#Je lokale app.db in C:<pad naar jou famplan/project>
+
+##Container Draaien
+#Start de container met een volume-mount om je database persistent te maken:
+
+#docker run -p 5000:5000 --env-file .env -v "<pad naar app.db>:/app/app.db" --name famplan-app famplan
+
+#-p 5000:5000: Maakt de app beschikbaar op http://localhost:5000.
+
+#na het bouwen van de container met de naam famplan moet je deze commando runnen
+
+#docker run -p 5000:5000 --env-file .env -v "<pad naar app.db>:/app/app.db" famplan
+
+##nog te doen als een gebruiker is verwijdert moeten ook de bijhorende post worden verwijderd
