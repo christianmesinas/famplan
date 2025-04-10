@@ -27,4 +27,7 @@
 
 #docker run -p 5000:5000 --env-file .env -v "<pad naar app.db>:/app/app.db" famplan
 
+deze commando runnen zodat je container niet moet rebooten hele tijd
+docker-compose up --build
+
 ##nog te doen als een gebruiker is verwijdert moeten ook de bijhorende post worden verwijderd
