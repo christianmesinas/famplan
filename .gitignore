@@ -27,6 +27,7 @@ secrets/
 config/local_config.py  # Lokale configuratie
 
 # Docker-specifieke bestanden
+Dockerfile
 Dockerfile.local
 *.dockerignore
 docker-compose.override.yml
