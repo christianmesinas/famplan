@@ -26,6 +26,7 @@ flaskenv
 secrets/
 config/local_config.py  # Lokale configuratie
 
+#test
 # Docker-specifieke bestanden
 Dockerfile
 Dockerfile.local
