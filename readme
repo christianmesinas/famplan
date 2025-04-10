@@ -6,6 +6,7 @@
 # bouw eerst een docker container
 # docker build -t famplan .
 
+#test Stijn
 
 ##famplan Docker Container Beheer
 #Dit document beschrijft hoe je je Flask famplan-applicatie in een Docker-container kunt draaien, stoppen, en herstarten met een persistente database (app.db).
