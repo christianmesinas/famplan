@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1>{{ _('Connect to Google Calendar') }}</h1>
+            <p class="lead my-4">
+                To use the calendar features, you need to connect your Google Calendar account.
+            </p>
+            <a href="{{ url_for('calendar.authorize') }}" class="btn btn-primary btn-lg">
+                <i class="fa fa-google me-2"></i> Connect Google Calendar
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

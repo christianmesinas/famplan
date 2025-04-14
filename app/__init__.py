@@ -20,8 +20,6 @@ oauth = OAuth()
 
 load_dotenv()
 
-def get_locale():
-    return request.accept_languages.best_match(Config.LANGUAGES)
 
 def create_app():
     app = Flask(__name__, static_folder='static')
@@ -80,4 +78,10 @@ def create_app():
     from app import routes, models, errors
     routes.register_routes(app)
 
+    from app.calendar import bp as calendar_bp
+    app.register_blueprint(calendar_bp)
+
     return app
+
+def get_locale():
+    return request.accept_languages.best_match(Config.LANGUAGES)

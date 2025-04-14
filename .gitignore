@@ -9,6 +9,8 @@ build/
 .Python
 venv/
 env/
+secret.json
+*secret.json
 
 # Flask-specifieke bestanden
 app.db
