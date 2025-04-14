@@ -1,12 +1,15 @@
 from flask import session, render_template, flash, redirect, url_for, request, g, current_app, jsonify
 from flask_babel import _, get_locale
 import sqlalchemy as sa
-from app import db, oauth  # Gebruik oauth in plaats van auth0
+from app import db, oauth
 from app.forms import PostForm, EditProfileForm, EmptyForm, MessageForm
-from app.models import User, Post, Message, Notification
+from app.models import User, Post, Message, Notification, CalendarCredentials
+from app.calendar_service import GoogleCalendarService
 from langdetect import detect, LangDetectException
 from datetime import datetime, timezone
 import logging
+import secrets
+
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -22,12 +25,10 @@ def get_current_user():
     return None
 
 def register_routes(app):
-    # Contextprocessor
     @app.context_processor
     def inject_current_user():
         return dict(get_current_user=get_current_user)
 
-    # Before request
     @app.before_request
     def before_request():
         user = get_current_user()
@@ -40,11 +41,20 @@ def register_routes(app):
     def login():
         if 'user' in session:
             return redirect(url_for('index'))
-        return oauth.auth0.authorize_redirect(redirect_uri='http://localhost:5000/callback')
+        session['auth0_state'] = secrets.token_urlsafe(32)
+        redirect_uri = url_for('callback', _external=True)
+        current_app.logger.debug(f"Generated redirect_uri: {redirect_uri}")
+        return oauth.auth0.authorize_redirect(redirect_uri=redirect_uri, state=session['auth0_state'])
 
     @app.route('/callback')
     def callback():
         try:
+            received_state = request.args.get('state')
+            expected_state = session.get('auth0_state')
+            if received_state != expected_state:
+                current_app.logger.error(f"CSRF Warning: State mismatch. Received: {received_state}, Expected: {expected_state}")
+                return "Invalid state parameter", 403
+
             token = oauth.auth0.authorize_access_token()
             app.logger.debug(f"Token received: {token}")
             session['user'] = token
@@ -62,10 +72,11 @@ def register_routes(app):
             else:
                 app.logger.debug(f"Existing user found: {user.email}")
             app.logger.debug(f"Session after callback: {session}")
+            session.pop('auth0_state', None)
             return redirect(url_for('index'))
         except Exception as e:
             app.logger.error(f"Error in callback: {str(e)}")
-            return "An error occurred during login", 500
+            return f"An error occurred during login: {str(e)}", 500
 
     @app.route('/logout')
     def logout():
@@ -255,3 +266,8 @@ def register_routes(app):
             flash(_('Your message has been sent.'))
             return redirect(url_for('user', username=recipient))
         return render_template('send_message.html', title=_('Send Message'), form=form, recipient=recipient)
+
+
+    @app.route('/favicon.ico')
+    def favicon():
+        return '', 204

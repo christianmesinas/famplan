@@ -46,6 +46,7 @@ class User(PaginatedAPIMixin, db.Model):
     tasks: so.WriteOnlyMapped['Task'] = so.relationship(back_populates='user')
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(default=lambda: datetime.now(timezone.utc))
+    calendar_credentials: so.WriteOnlyMapped['CalendarCredentials'] = so.relationship(back_populates='user')
 
     following: so.WriteOnlyMapped['User'] = so.relationship(
         secondary=followers, primaryjoin=(followers.c.follower_id == id),
@@ -180,3 +181,16 @@ class Task(db.Model):
     def get_progress(self):
         job = self.get_rq_job()
         return job.meta.get('progress', 0) if job is not None else 100
+
+class CalendarCredentials(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    token: so.Mapped[str] = so.mapped_column(sa.Text)
+    refresh_token: so.Mapped[str] = so.mapped_column(sa.String(200))
+    token_uri: so.Mapped[str] = so.mapped_column(sa.String(200))
+    client_id: so.Mapped[str] = so.mapped_column(sa.String(200))
+    client_secret: so.Mapped[str] = so.mapped_column(sa.String(200))
+    scopes: so.Mapped[str] = so.mapped_column(sa.Text)
+    expiry: so.Mapped[datetime] = so.mapped_column()
+
+    user: so.Mapped[User] = so.relationship(back_populates='calendar_credentials')
