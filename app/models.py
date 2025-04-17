@@ -9,7 +9,7 @@ import json
 import time
 import redis
 import rq
-from flask import current_app  # Gebruik current_app voor app-context
+from flask import current_app, url_for  # Gebruik current_app voor app-context
 
 class PaginatedAPIMixin(object):
     @staticmethod
@@ -37,6 +37,7 @@ class User(PaginatedAPIMixin, db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     username: so.Mapped[str] = so.mapped_column(sa.String(64), index=True, unique=True)
     email: so.Mapped[str] = so.mapped_column(sa.String(120), index=True, unique=True)
+    sub = db.Column(db.String(120), index=True, unique=True, nullable=False)  # Auth0
     last_message_read_time: so.Mapped[Optional[datetime]]
     token: so.Mapped[Optional[str]] = so.mapped_column(sa.String(32), index=True, unique=True)
     token_expiration: so.Mapped[Optional[datetime]]

@@ -1,8 +1,8 @@
-"""Initial migration with all models
+"""Initial migration
 
-Revision ID: daff8a9b08ed
+Revision ID: 858be259f4e2
 Revises: 
-Create Date: 2025-04-14 11:28:48.299563
+Create Date: 2025-04-17 14:47:56.132292
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'daff8a9b08ed'
+revision = '858be259f4e2'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -23,6 +23,7 @@ def upgrade():
     sa.Column('username', sa.String(length=64), nullable=False),
     sa.Column('email', sa.String(length=120), nullable=False),
     sa.Column('last_message_read_time', sa.DateTime(), nullable=True),
+    sa.Column('sub', sa.String(length=120), nullable=False),
     sa.Column('token', sa.String(length=32), nullable=True),
     sa.Column('token_expiration', sa.DateTime(), nullable=True),
     sa.Column('about_me', sa.String(length=140), nullable=True),
@@ -31,6 +32,7 @@ def upgrade():
     )
     with op.batch_alter_table('user', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_user_email'), ['email'], unique=True)
+        batch_op.create_index(batch_op.f('ix_user_sub'), ['sub'], unique=True)
         batch_op.create_index(batch_op.f('ix_user_token'), ['token'], unique=True)
         batch_op.create_index(batch_op.f('ix_user_username'), ['username'], unique=True)
 
@@ -145,6 +147,7 @@ def downgrade():
     with op.batch_alter_table('user', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_user_username'))
         batch_op.drop_index(batch_op.f('ix_user_token'))
+        batch_op.drop_index(batch_op.f('ix_user_sub'))
         batch_op.drop_index(batch_op.f('ix_user_email'))
 
     op.drop_table('user')

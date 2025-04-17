@@ -1,5 +1,5 @@
 from flask import Blueprint, redirect, url_for, session, request, render_template, flash, current_app, jsonify
-from app import db
+from app import db, oauth
 from app.models import User, CalendarCredentials
 from app.calendar_service import GoogleCalendarService
 import sqlalchemy as sa
@@ -39,10 +39,20 @@ def calendar_auth_required(f):
 
 
 def get_current_user():
-    if 'user' in session:
-        user_info = session['user']['userinfo']
-        return db.session.scalar(sa.select(User).where(User.email == user_info['email']))
-    return None
+    user_info = session.get('user', {}).get('userinfo', {})
+    current_app.logger.debug(f"User info: {user_info}")
+    if not user_info:
+        return None
+    sub = user_info.get('sub')
+    if not sub:
+        current_app.logger.error("No sub found in user info, cannot retrieve user")
+        return None
+    user = db.session.scalar(sa.select(User).where(User.sub == sub))
+    if user:
+        current_app.logger.debug(f"Found user with sub: {sub}")
+    else:
+        current_app.logger.debug("User not found in database, should have been created in callback")
+    return user
 
 
 @bp.route('/calendar')
@@ -52,6 +62,7 @@ def index():
     creds = db.session.scalar(sa.select(CalendarCredentials).where(
         CalendarCredentials.user_id == current_user.id))
     if not creds:
+        flash('A Google account is required to use the calendar functionality. Please connect your Google Calendar.', 'info')
         return render_template('calendar/connect.html')
     return render_template('calendar/index.html')
 

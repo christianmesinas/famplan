@@ -9,20 +9,34 @@ from langdetect import detect, LangDetectException
 from datetime import datetime, timezone
 import logging
 import secrets
+from requests.exceptions import HTTPError
+
 
 
 logging.basicConfig(level=logging.DEBUG)
 
+
 def get_current_user():
-    if 'user' in session:
-        user_info = session['user']['userinfo']
-        current_app.logger.debug(f"Checking user with email: {user_info['email']}")
-        user = db.session.scalar(sa.select(User).where(User.email == user_info['email']))
-        if not user:
-            current_app.logger.debug("User not found in database, should have been created in callback")
-        return user
-    current_app.logger.debug("No user in session")
-    return None
+    if 'user' not in session:
+        current_app.logger.debug("No user in session")
+        return None
+
+    user_info = session['user'].get('userinfo', {})
+    current_app.logger.debug(f"User info: {user_info}")
+
+    # sub als unieke identifier
+    sub = user_info.get('sub')
+    if not sub:
+        current_app.logger.error("No sub found in user info, cannot identify user")
+        return None
+
+    user = db.session.scalar(sa.select(User).where(User.sub == sub))
+    if not user:
+        current_app.logger.debug("User not found in database, should have been created in callback")
+        return None
+
+    current_app.logger.debug(f"Found user with sub: {sub}")
+    return user
 
 def register_routes(app):
     @app.context_processor
@@ -44,39 +58,101 @@ def register_routes(app):
         session['auth0_state'] = secrets.token_urlsafe(32)
         redirect_uri = url_for('callback', _external=True)
         current_app.logger.debug(f"Generated redirect_uri: {redirect_uri}")
-        return oauth.auth0.authorize_redirect(redirect_uri=redirect_uri, state=session['auth0_state'])
-
+        prompt = request.args.get('prompt', 'select_account')
+        return oauth.auth0.authorize_redirect(redirect_uri=redirect_uri, state=session['auth0_state'], prompt=prompt)
     @app.route('/callback')
     def callback():
         try:
             received_state = request.args.get('state')
             expected_state = session.get('auth0_state')
             if received_state != expected_state:
-                current_app.logger.error(f"CSRF Warning: State mismatch. Received: {received_state}, Expected: {expected_state}")
-                return "Invalid state parameter", 403
+                current_app.logger.error(
+                    f"CSRF Warning: State mismatch. Received: {received_state}, Expected: {expected_state}")
+                session.clear()
+                return redirect(url_for('login', prompt='login'))
 
             token = oauth.auth0.authorize_access_token()
             app.logger.debug(f"Token received: {token}")
             session['user'] = token
             user_info = token['userinfo']
             app.logger.debug(f"User info: {user_info}")
-            user = db.session.scalar(sa.select(User).where(User.email == user_info['email']))
+            sub = user_info.get('sub')
+            if not sub:
+                app.logger.error("No sub found in user info, cannot create user")
+                session.clear()
+                return redirect(url_for('login', prompt='login'))
+
+            email = user_info.get('email')
+            if not email:
+                email = f"{sub.replace('|', '_')}@noemail.example.com"
+
+            # Controleer eerst of een gebruiker bestaat op basis van sub
+            user = db.session.scalar(sa.select(User).where(User.sub == sub))
             if not user:
+                # Controleer of het e-mailadres al in gebruik is door een andere gebruiker
+                existing_user_with_email = db.session.scalar(sa.select(User).where(User.email == email))
+                if existing_user_with_email:
+                    app.logger.error(
+                        f"Email {email} already in use by another user with sub: {existing_user_with_email.sub}")
+                    session.clear()
+                    flash(
+                        _('This email address is already in use by another account. Please log in with a different account.'),
+                        'danger')
+                    logout_url = (
+                        f"https://{app.config['AUTH0_DOMAIN']}/v2/logout?"
+                        f"federated&returnTo={url_for('login', _external=True, prompt='login')}&client_id={app.config['AUTH0_CLIENT_ID']}"
+                    )
+                    return redirect(logout_url)
+
+                # Geen conflict, maak een nieuwe gebruiker aan
                 user = User(
-                    username=user_info.get('nickname', user_info['email'].split('@')[0]),
-                    email=user_info['email']
+                    username=user_info.get('nickname', 'default_user'),
+                    email=email,
+                    sub=sub
                 )
                 db.session.add(user)
                 db.session.commit()
-                app.logger.debug(f"New user added: {user.email}")
+                app.logger.debug(f"New user added with sub: {sub}")
             else:
-                app.logger.debug(f"Existing user found: {user.email}")
+                # Update het e-mailadres van de bestaande gebruiker, als het veranderd is
+                if email and user.email != email:
+                    # Controleer of het nieuwe e-mailadres al in gebruik is
+                    existing_user_with_email = db.session.scalar(sa.select(User).where(User.email == email))
+                    if existing_user_with_email and existing_user_with_email.sub != sub:
+                        app.logger.error(
+                            f"Email {email} already in use by another user with sub: {existing_user_with_email.sub}")
+                        session.clear()
+                        flash(
+                            _('This email address is already in use by another account. Please log in with a different account.'),
+                            'danger')
+                        logout_url = (
+                            f"https://{app.config['AUTH0_DOMAIN']}/v2/logout?"
+                            f"federated&returnTo={url_for('login', _external=True, prompt='login')}&client_id={app.config['AUTH0_CLIENT_ID']}"
+                        )
+                        return redirect(logout_url)
+                    user.email = email
+                    db.session.commit()
+                app.logger.debug(f"Existing user found with sub: {sub}")
             app.logger.debug(f"Session after callback: {session}")
             session.pop('auth0_state', None)
             return redirect(url_for('index'))
-        except Exception as e:
+        except HTTPError as e:
+            error_description = e.response.json().get('error_description', 'Unknown error') if e.response else str(e)
             app.logger.error(f"Error in callback: {str(e)}")
-            return f"An error occurred during login: {str(e)}", 500
+            session.clear()
+            logout_url = (
+                f"https://{app.config['AUTH0_DOMAIN']}/v2/logout?"
+                f"federated&returnTo={url_for('login', _external=True, prompt='login')}&client_id={app.config['AUTH0_CLIENT_ID']}"
+            )
+            return redirect(logout_url)
+        except Exception as e:
+            app.logger.error(f"Unexpected error in callback: {str(e)}")
+            session.clear()
+            logout_url = (
+                f"https://{app.config['AUTH0_DOMAIN']}/v2/logout?"
+                f"federated&returnTo={url_for('login', _external=True, prompt='login')}&client_id={app.config['AUTH0_CLIENT_ID']}"
+            )
+            return redirect(logout_url)
 
     @app.route('/logout')
     def logout():
@@ -96,6 +172,7 @@ def register_routes(app):
             user = User(
                 email=data['email'],
                 username=data.get('username', data['email'].split('@')[0]),
+                sub=f"manual|{data['email']}"
             )
             db.session.add(user)
             db.session.commit()
