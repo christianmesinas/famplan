@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <h1 class="text-danger">Oops! Something went wrong</h1>
+            <p class="lead">{{ error_message }}</p>
+            <a href="{{ url_for('login') }}" class="btn btn-primary">Try logging in again</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
