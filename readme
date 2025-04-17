@@ -31,4 +31,13 @@
 deze commando runnen zodat je container niet moet rebooten hele tijd
 docker-compose up --build
 
+
+voor nieuwe db verwijder oude databases en migrations map
+
+in venv
+flask db init
+flask db migrate -m "Initial migration"
+flask db upgrade
+docker-compose up --build
+
 ##nog te doen als een gebruiker is verwijdert moeten ook de bijhorende post worden verwijderd
