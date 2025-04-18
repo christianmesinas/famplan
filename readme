@@ -41,3 +41,4 @@ flask db upgrade
 docker-compose up --build
 
 ##nog te doen als een gebruiker is verwijdert moeten ook de bijhorende post worden verwijderd
+##testest
