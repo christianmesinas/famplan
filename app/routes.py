@@ -61,6 +61,7 @@ def register_routes(app):
         prompt = request.args.get('prompt', 'select_account')
         return oauth.auth0.authorize_redirect(redirect_uri=redirect_uri, state=session['auth0_state'], prompt=prompt)
     @app.route('/callback')
+
     def callback():
         try:
             received_state = request.args.get('state')
