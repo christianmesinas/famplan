@@ -138,18 +138,6 @@ class Post(db.Model):
     def __repr__(self):
         return '<Post {}>'.format(self.body)
 
-class Message(db.Model):
-    id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    sender_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
-    recipient_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
-    body: so.Mapped[str] = so.mapped_column(sa.String(140))
-    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
-    author: so.Mapped[User] = so.relationship(foreign_keys='Message.sender_id', back_populates='messages_sent')
-    recipient: so.Mapped[User] = so.relationship(foreign_keys='Message.recipient_id', back_populates='messages_received')
-
-    def __repr__(self):
-        return '<Message {}>'.format(self.body)
-
 class Notification(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
     name: so.Mapped[str] = so.mapped_column(sa.String(128), index=True)
@@ -195,3 +183,16 @@ class CalendarCredentials(db.Model):
     expiry: so.Mapped[datetime] = so.mapped_column()
 
     user: so.Mapped[User] = so.relationship(back_populates='calendar_credentials')
+
+class Message(db.Model):
+    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    sender_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    recipient_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
+    body: so.Mapped[str] = so.mapped_column(sa.String(140))
+    timestamp: so.Mapped[datetime] = so.mapped_column(index=True, default=lambda: datetime.now(timezone.utc))
+    author: so.Mapped[User] = so.relationship(foreign_keys='Message.sender_id', back_populates='messages_sent')
+    recipient: so.Mapped[User] = so.relationship(foreign_keys='Message.recipient_id',
+                                                 back_populates='messages_received')
+
+    def __repr__(self):
+        return '<Message {}>'.format(self.body)
