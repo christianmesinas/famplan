@@ -9,16 +9,35 @@ from functools import wraps
 
 bp = Blueprint('calendar', __name__)
 
+# Helperfuncties voor credentialbeheer
+def get_calendar_credentials(user_id):
+    """Helper om credentials op te halen voor een gebruiker."""
+    return db.session.scalar(
+        sa.select(CalendarCredentials).where(CalendarCredentials.user_id == user_id)
+    )
 
+def credentials_to_dict(creds):
+    """Converteer credentials naar een dictionary voor de Google Calendar API."""
+    if not creds:
+        return None
+    return {
+        'token': creds.token,
+        'refresh_token': creds.refresh_token,
+        'token_uri': creds.token_uri,
+        'client_id': creds.client_id,
+        'client_secret': creds.client_secret,
+        'scopes': json.loads(creds.scopes),
+        'expiry': creds.expiry.isoformat() if creds.expiry else None
+    }
+
+# Decorators
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user' not in session:
             return redirect(url_for('login'))
         return f(*args, **kwargs)
-
     return decorated_function
-
 
 def calendar_auth_required(f):
     @wraps(f)
@@ -27,17 +46,14 @@ def calendar_auth_required(f):
         if not current_user:
             return redirect(url_for('login'))
 
-        creds = db.session.scalar(sa.select(CalendarCredentials).where(
-            CalendarCredentials.user_id == current_user.id))
-
+        creds = get_calendar_credentials(current_user.id)
         if not creds:
             return redirect(url_for('calendar.authorize'))
 
         return f(*args, **kwargs)
-
     return decorated_function
 
-
+# Hulpfunction om de huidige gebruiker op te halen
 def get_current_user():
     user_info = session.get('user', {}).get('userinfo', {})
     current_app.logger.debug(f"User info: {user_info}")
@@ -54,18 +70,16 @@ def get_current_user():
         current_app.logger.debug("User not found in database, should have been created in callback")
     return user
 
-
+# Routes
 @bp.route('/calendar')
 @login_required
 def index():
     current_user = get_current_user()
-    creds = db.session.scalar(sa.select(CalendarCredentials).where(
-        CalendarCredentials.user_id == current_user.id))
+    creds = get_calendar_credentials(current_user.id)
     if not creds:
         flash('A Google account is required to use the calendar functionality. Please connect your Google Calendar.', 'info')
         return render_template('calendar/connect.html')
     return render_template('calendar/index.html')
-
 
 @bp.route('/calendar/authorize')
 @login_required
@@ -76,10 +90,8 @@ def authorize():
         prompt='consent',
         include_granted_scopes='true'
     )
-
     session['state'] = state
     return redirect(authorization_url)
-
 
 @bp.route('/oauth2callback')
 def google_oauth2callback():
@@ -104,9 +116,7 @@ def google_oauth2callback():
         'expiry': credentials.expiry
     }
 
-    creds = db.session.scalar(sa.select(CalendarCredentials).where(
-        CalendarCredentials.user_id == current_user.id))
-
+    creds = get_calendar_credentials(current_user.id)
     if creds:
         for key, value in creds_data.items():
             setattr(creds, key, value)
@@ -118,24 +128,15 @@ def google_oauth2callback():
     flash('Google Calendar connected successfully!')
     return redirect(url_for('calendar.index'))
 
-
 @bp.route('/calendar/events')
 @calendar_auth_required
 def events():
     current_user = get_current_user()
-    creds = db.session.scalar(sa.select(CalendarCredentials).where(
-        CalendarCredentials.user_id == current_user.id))
-    if not creds:
+    creds = get_calendar_credentials(current_user.id)
+    creds_dict = credentials_to_dict(creds)
+    if not creds_dict:
         return redirect(url_for('calendar.authorize'))
-    creds_dict = {
-        'token': creds.token,
-        'refresh_token': creds.refresh_token,
-        'token_uri': creds.token_uri,
-        'client_id': creds.client_id,
-        'client_secret': creds.client_secret,
-        'scopes': json.loads(creds.scopes),
-        'expiry': creds.expiry.isoformat() if creds.expiry else None
-    }
+
     service = GoogleCalendarService.get_calendar_service(creds_dict)
     start_date = request.args.get('start')
     end_date = request.args.get('end')
@@ -161,7 +162,6 @@ def events():
     for event in events:
         start = event['start'].get('dateTime', event['start'].get('date'))
         end = event['end'].get('dateTime', event['end'].get('date'))
-
         formatted_events.append({
             'id': event['id'],
             'title': event['summary'],
@@ -173,29 +173,17 @@ def events():
 
     return jsonify(formatted_events)
 
-
 @bp.route('/calendar/event', methods=['POST'])
 @calendar_auth_required
 def create_event():
     current_user = get_current_user()
-    creds = db.session.scalar(sa.select(CalendarCredentials).where(
-        CalendarCredentials.user_id == current_user.id))
+    creds = get_calendar_credentials(current_user.id)
+    creds_dict = credentials_to_dict(creds)
 
     data = request.json
-
-    creds_dict = {
-        'token': creds.token,
-        'refresh_token': creds.refresh_token,
-        'token_uri': creds.token_uri,
-        'client_id': creds.client_id,
-        'client_secret': creds.client_secret,
-        'scopes': json.loads(creds.scopes),
-        'expiry': creds.expiry.isoformat() if creds.expiry else None
-    }
-
     service = GoogleCalendarService.get_calendar_service(creds_dict)
 
-    # datums
+    # Datums omzetten
     start_datetime = datetime.fromisoformat(data['start'].replace('Z', '+00:00'))
     end_datetime = datetime.fromisoformat(data['end'].replace('Z', '+00:00'))
 
@@ -216,31 +204,19 @@ def create_event():
         'end': event['end']['dateTime']
     })
 
-
 @bp.route('/calendar/event/<event_id>', methods=['PUT'])
 @calendar_auth_required
 def update_event(event_id):
     current_user = get_current_user()
-    creds = db.session.scalar(sa.select(CalendarCredentials).where(
-        CalendarCredentials.user_id == current_user.id))
+    creds = get_calendar_credentials(current_user.id)
+    creds_dict = credentials_to_dict(creds)
 
     data = request.json
-
-    creds_dict = {
-        'token': creds.token,
-        'refresh_token': creds.refresh_token,
-        'token_uri': creds.token_uri,
-        'client_id': creds.client_id,
-        'client_secret': creds.client_secret,
-        'scopes': json.loads(creds.scopes),
-        'expiry': creds.expiry.isoformat() if creds.expiry else None
-    }
-
     service = GoogleCalendarService.get_calendar_service(creds_dict)
 
     event = service.events().get(calendarId='primary', eventId=event_id).execute()
 
-    # Update fields
+    # Update velden
     if 'title' in data:
         event['summary'] = data['title']
     if 'description' in data:
@@ -277,29 +253,14 @@ def update_event(event_id):
         'end': updated_event['end']['dateTime']
     })
 
-
 @bp.route('/calendar/event/<event_id>', methods=['DELETE'])
 @calendar_auth_required
 def delete_event(event_id):
     current_user = get_current_user()
-    creds = db.session.scalar(sa.select(CalendarCredentials).where(
-        CalendarCredentials.user_id == current_user.id))
+    creds = get_calendar_credentials(current_user.id)
+    creds_dict = credentials_to_dict(creds)
 
-    # credentials dictionary
-    creds_dict = {
-        'token': creds.token,
-        'refresh_token': creds.refresh_token,
-        'token_uri': creds.token_uri,
-        'client_id': creds.client_id,
-        'client_secret': creds.client_secret,
-        'scopes': json.loads(creds.scopes),
-        'expiry': creds.expiry.isoformat() if creds.expiry else None
-    }
-
-    # haal kalender
     service = GoogleCalendarService.get_calendar_service(creds_dict)
-
-    # verwijder
     GoogleCalendarService.delete_event(service, 'primary', event_id)
 
     return jsonify({'success': True})

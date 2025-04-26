@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, Blueprint
+from flask import Flask, Blueprint
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
