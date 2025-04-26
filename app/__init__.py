@@ -7,7 +7,6 @@ import logging
 from logging.handlers import SMTPHandler, RotatingFileHandler
 from flask_mail import Mail
 from flask_moment import Moment
-from flask_babel import Babel, lazy_gettext as _l
 from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
 
@@ -15,7 +14,6 @@ db = SQLAlchemy()
 migrate = Migrate()
 mail = Mail()
 moment = Moment()
-babel = Babel()
 oauth = OAuth()
 
 load_dotenv()
@@ -33,7 +31,6 @@ def create_app():
     migrate.init_app(app, db)
     mail.init_app(app)
     moment.init_app(app)
-    babel.init_app(app, locale_selector=get_locale)
     oauth.init_app(app)
 
     oauth.register(
@@ -83,5 +80,3 @@ def create_app():
 
     return app
 
-def get_locale():
-    return request.accept_languages.best_match(Config.LANGUAGES)

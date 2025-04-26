@@ -2,13 +2,12 @@ from flask_mail import Message
 from app import mail, app
 from threading import Thread
 from flask import render_template, current_app
-from flask_babel import _
 
 
 
 def send_password_reset_email(user):
     token = user.get_reset_password_token()
-    send_email(_('[famplan] Reset Your Password'),
+    send_email('[famplan] Reset Your Password',
                sender=app.config['MAIL_DEFAULT_SENDER'],
                recipients=[user.email],
                text_body=render_template('email/reset_password.txt',

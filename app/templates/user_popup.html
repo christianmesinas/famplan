@@ -4,22 +4,22 @@
   {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
   <div class="clearfix"></div>
   {% if user.last_seen %}
-  <p>{{ _('Last seen on') }}: {{ moment(user.last_seen).format('lll') }}</p>
+  <p>Last seen on: {{ moment(user.last_seen).format('lll') }}</p>
   {% endif %}
-  <p>{{ _('%(count)d followers', count=user.followers_count()) }}, {{ _('%(count)d following', count=user.following_count()) }}</p>
+  <p>{{ user.followers_count() }} followers, {{ user.following_count() }} following</p>
   {% if user != current_user %}
     {% if not current_user.is_following(user) %}
     <p>
       <form action="{{ url_for('follow', username=user.username) }}" method="post">
         {{ form.hidden_tag() }}
-        {{ form.submit(value=_('Follow'), class_='btn btn-outline-primary btn-sm') }}
+        {{ form.submit(value='Follow', class_='btn btn-outline-primary btn-sm') }}
       </form>
     </p>
     {% else %}
     <p>
       <form action="{{ url_for('unfollow', username=user.username) }}" method="post">
         {{ form.hidden_tag() }}
-        {{ form.submit(value=_('Unfollow'), class_='btn btn-outline-primary btn-sm') }}
+        {{ form.submit(value='Unfollow', class_='btn btn-outline-primary btn-sm') }}
       </form>
     </p>
     {% endif %}
