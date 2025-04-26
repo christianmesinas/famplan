@@ -1,46 +1,55 @@
-from flask import session, render_template, flash, redirect, url_for, request, g, current_app, jsonify
+from flask import session, render_template, flash, redirect, url_for, request, jsonify
 import sqlalchemy as sa
 from app import db, oauth
 from app.forms import PostForm, EditProfileForm, EmptyForm, MessageForm
-from app.models import User, Post, Message, Notification, CalendarCredentials
-from app.calendar_service import GoogleCalendarService
-from datetime import datetime, timezone
+from app.models import User, Post, Message, Notification
 import logging
-import secrets
+from datetime import datetime, timezone
 from requests.exceptions import HTTPError
 
-
-
+# Configureer logging
 logging.basicConfig(level=logging.DEBUG)
-
+logger = logging.getLogger(__name__)
 
 def get_current_user():
+    """
+    Haal de huidige ingelogde gebruiker op uit de sessie.
+    Retourneert None als er geen gebruiker is ingelogd.
+    """
     if 'user' not in session:
-        current_app.logger.debug("No user in session")
+        logger.debug("No user in session")
         return None
 
     user_info = session['user'].get('userinfo', {})
-    current_app.logger.debug(f"User info: {user_info}")
+    logger.debug(f"User info: {user_info}")
 
-    # sub als unieke identifier
+    # Gebruik 'sub' als unieke identifier
     sub = user_info.get('sub')
     if not sub:
-        current_app.logger.error("No sub found in user info, cannot identify user")
+        logger.error("No sub found in user info, cannot identify user")
         return None
 
     user = db.session.scalar(sa.select(User).where(User.sub == sub))
     if not user:
-        current_app.logger.debug("User not found in database, should have been created in callback")
+        logger.debug("User not found in database, should have been created in callback")
         return None
 
-    current_app.logger.debug(f"Found user with sub: {sub}")
+    logger.debug(f"Found user with sub: {sub}")
     return user
 
 def register_routes(app):
+    """
+    Registreer alle routes voor de Flask-applicatie.
+
+    Args:
+        app: De Flask-applicatie-instantie.
+    """
+    # Injecteer get_current_user in alle templates
     @app.context_processor
     def inject_current_user():
         return dict(get_current_user=get_current_user)
 
+    # Update de last_seen-tijd van de gebruiker bij elk verzoek
     @app.before_request
     def before_request():
         user = get_current_user()
@@ -48,34 +57,40 @@ def register_routes(app):
             user.last_seen = datetime.now(timezone.utc)
             db.session.commit()
 
+    # Route om in te loggen via Auth0
     @app.route('/login')
     def login():
         if 'user' in session:
             return redirect(url_for('index'))
         session['auth0_state'] = secrets.token_urlsafe(32)
         redirect_uri = url_for('callback', _external=True)
-        current_app.logger.debug(f"Generated redirect_uri: {redirect_uri}")
+        logger.debug(f"Generated redirect_uri: {redirect_uri}")
         prompt = request.args.get('prompt', 'select_account')
-        return oauth.auth0.authorize_redirect(redirect_uri=redirect_uri, state=session['auth0_state'], prompt=prompt)
+        return oauth.auth0.authorize_redirect(
+            redirect_uri=redirect_uri,
+            state=session['auth0_state'],
+            prompt=prompt
+        )
+
+    # Route om de Auth0-callback af te handelen
     @app.route('/callback')
     def callback():
         try:
             received_state = request.args.get('state')
             expected_state = session.get('auth0_state')
             if received_state != expected_state:
-                current_app.logger.error(
-                    f"CSRF Warning: State mismatch. Received: {received_state}, Expected: {expected_state}")
+                logger.error(f"CSRF Warning: State mismatch. Received: {received_state}, Expected: {expected_state}")
                 session.clear()
                 return redirect(url_for('login', prompt='login'))
 
             token = oauth.auth0.authorize_access_token()
-            app.logger.debug(f"Token received: {token}")
+            logger.debug(f"Token received: {token}")
             session['user'] = token
             user_info = token['userinfo']
-            app.logger.debug(f"User info: {user_info}")
+            logger.debug(f"User info: {user_info}")
             sub = user_info.get('sub')
             if not sub:
-                app.logger.error("No sub found in user info, cannot create user")
+                logger.error("No sub found in user info, cannot create user")
                 session.clear()
                 return redirect(url_for('login', prompt='login'))
 
@@ -83,25 +98,22 @@ def register_routes(app):
             if not email:
                 email = f"{sub.replace('|', '_')}@noemail.example.com"
 
-            # Controleer eerst of een gebruiker bestaat op basis van sub
+            # Controleer of de gebruiker al bestaat
             user = db.session.scalar(sa.select(User).where(User.sub == sub))
             if not user:
-                # Controleer of het e-mailadres al in gebruik is door een andere gebruiker
+                # Controleer op e-mailconflicten
                 existing_user_with_email = db.session.scalar(sa.select(User).where(User.email == email))
                 if existing_user_with_email:
-                    app.logger.error(
-                        f"Email {email} already in use by another user with sub: {existing_user_with_email.sub}")
+                    logger.error(f"Email {email} already in use by another user with sub: {existing_user_with_email.sub}")
                     session.clear()
-                    flash(
-                        'This email address is already in use by another account. Please log in with a different account.',
-                        'danger')
+                    flash('This email address is already in use by another account.', 'danger')
                     logout_url = (
                         f"https://{app.config['AUTH0_DOMAIN']}/v2/logout?"
                         f"federated&returnTo={url_for('login', _external=True, prompt='login')}&client_id={app.config['AUTH0_CLIENT_ID']}"
                     )
                     return redirect(logout_url)
 
-                # Geen conflict, maak een nieuwe gebruiker aan
+                # Maak een nieuwe gebruiker aan
                 user = User(
                     username=user_info.get('nickname', 'default_user'),
                     email=email,
@@ -109,19 +121,15 @@ def register_routes(app):
                 )
                 db.session.add(user)
                 db.session.commit()
-                app.logger.debug(f"New user added with sub: {sub}")
+                logger.debug(f"New user added with sub: {sub}")
             else:
-                # Update het e-mailadres van de bestaande gebruiker, als het veranderd is
+                # Update e-mail van bestaande gebruiker
                 if email and user.email != email:
-                    # Controleer of het nieuwe e-mailadres al in gebruik is
                     existing_user_with_email = db.session.scalar(sa.select(User).where(User.email == email))
                     if existing_user_with_email and existing_user_with_email.sub != sub:
-                        app.logger.error(
-                            f"Email {email} already in use by another user with sub: {existing_user_with_email.sub}")
+                        logger.error(f"Email {email} already in use by another user with sub: {existing_user_with_email.sub}")
                         session.clear()
-                        flash(
-                            'This email address is already in use by another account. Please log in with a different account.',
-                            'danger')
+                        flash('This email address is already in use by another account.', 'danger')
                         logout_url = (
                             f"https://{app.config['AUTH0_DOMAIN']}/v2/logout?"
                             f"federated&returnTo={url_for('login', _external=True, prompt='login')}&client_id={app.config['AUTH0_CLIENT_ID']}"
@@ -129,13 +137,15 @@ def register_routes(app):
                         return redirect(logout_url)
                     user.email = email
                     db.session.commit()
-                app.logger.debug(f"Existing user found with sub: {sub}")
-            app.logger.debug(f"Session after callback: {session}")
+                logger.debug(f"Existing user found with sub: {sub}")
+
+            logger.debug(f"Session after callback: {session}")
             session.pop('auth0_state', None)
             return redirect(url_for('index'))
+
         except HTTPError as e:
             error_description = e.response.json().get('error_description', 'Unknown error') if e.response else str(e)
-            app.logger.error(f"Error in callback: {str(e)}")
+            logger.error(f"Error in callback: {error_description}")
             session.clear()
             logout_url = (
                 f"https://{app.config['AUTH0_DOMAIN']}/v2/logout?"
@@ -143,7 +153,7 @@ def register_routes(app):
             )
             return redirect(logout_url)
         except Exception as e:
-            app.logger.error(f"Unexpected error in callback: {str(e)}")
+            logger.error(f"Unexpected error in callback: {str(e)}")
             session.clear()
             logout_url = (
                 f"https://{app.config['AUTH0_DOMAIN']}/v2/logout?"
@@ -151,6 +161,7 @@ def register_routes(app):
             )
             return redirect(logout_url)
 
+    # Route om uit te loggen
     @app.route('/logout')
     def logout():
         session.clear()
@@ -159,6 +170,7 @@ def register_routes(app):
             f"returnTo={url_for('index', _external=True)}&client_id={app.config['AUTH0_CLIENT_ID']}"
         )
 
+    # API-route om een gebruiker aan te maken
     @app.route('/api/users', methods=['POST'])
     def create_user():
         data = request.get_json()
@@ -173,18 +185,19 @@ def register_routes(app):
             )
             db.session.add(user)
             db.session.commit()
-            app.logger.debug(f"User created: {user.email}")
+            logger.debug(f"User created: {user.email}")
         return jsonify({'message': 'User created'}), 201
 
+    # Homepage en indexpagina
     @app.route('/', methods=['GET', 'POST'])
     @app.route('/index', methods=['GET', 'POST'])
     def index():
         if 'user' not in session:
-            app.logger.debug("No user in session, redirecting to login")
+            logger.debug("No user in session, redirecting to login")
             return redirect(url_for('login'))
         user = get_current_user()
         if user is None:
-            app.logger.error("User is None despite session, forcing logout")
+            logger.error("User is None despite session, forcing logout")
             session.clear()
             return redirect(url_for('login'))
         form = PostForm()
@@ -200,8 +213,9 @@ def register_routes(app):
         next_url = url_for('index', page=posts.next_num) if posts.has_next else None
         prev_url = url_for('index', page=posts.prev_num) if posts.has_prev else None
         return render_template('index.html', title='Home', form=form,
-                               posts=posts.items, next_url=next_url, prev_url=prev_url)
+                              posts=posts.items, next_url=next_url, prev_url=prev_url)
 
+    # Explore-pagina om alle posts te bekijken
     @app.route('/explore')
     def explore():
         if 'user' not in session:
@@ -213,8 +227,9 @@ def register_routes(app):
         next_url = url_for('explore', page=posts.next_num) if posts.has_next else None
         prev_url = url_for('explore', page=posts.prev_num) if posts.has_prev else None
         return render_template('index.html', title='Explore',
-                               posts=posts.items, next_url=next_url, prev_url=prev_url)
+                              posts=posts.items, next_url=next_url, prev_url=prev_url)
 
+    # Gebruikersprofielpagina
     @app.route('/user/<username>')
     def user(username):
         if 'user' not in session:
@@ -228,8 +243,9 @@ def register_routes(app):
         prev_url = url_for('user', username=user.username, page=posts.prev_num) if posts.has_prev else None
         form = EmptyForm()
         return render_template('user.html', user=user, posts=posts.items,
-                               next_url=next_url, prev_url=prev_url, form=form)
+                              next_url=next_url, prev_url=prev_url, form=form)
 
+    # Profiel bewerken
     @app.route('/edit_profile', methods=['GET', 'POST'])
     def edit_profile():
         if 'user' not in session:
@@ -247,6 +263,7 @@ def register_routes(app):
             form.about_me.data = user.about_me
         return render_template('edit_profile.html', title='Edit Profile', form=form)
 
+    # Gebruiker volgen
     @app.route('/follow/<username>', methods=['POST'])
     def follow(username):
         if 'user' not in session:
@@ -267,6 +284,7 @@ def register_routes(app):
             return redirect(url_for('user', username=username))
         return redirect(url_for('index'))
 
+    # Gebruiker ontvolgen
     @app.route('/unfollow/<username>', methods=['POST'])
     def unfollow(username):
         if 'user' not in session:
@@ -287,6 +305,7 @@ def register_routes(app):
             return redirect(url_for('user', username=username))
         return redirect(url_for('index'))
 
+    # Berichten bekijken
     @app.route('/messages')
     def messages():
         if 'user' not in session:
@@ -302,8 +321,9 @@ def register_routes(app):
         next_url = url_for('messages', page=messages.next_num) if messages.has_next else None
         prev_url = url_for('messages', page=messages.prev_num) if messages.has_prev else None
         return render_template('messages.html', messages=messages.items,
-                               next_url=next_url, prev_url=prev_url)
+                              next_url=next_url, prev_url=prev_url)
 
+    # Meldingen ophalen
     @app.route('/notifications')
     def notifications():
         if 'user' not in session:
@@ -319,6 +339,7 @@ def register_routes(app):
             'timestamp': n.timestamp
         } for n in notifications])
 
+    # Bericht sturen naar een andere gebruiker
     @app.route('/send_message/<recipient>', methods=['GET', 'POST'])
     def send_message(recipient):
         if 'user' not in session:
@@ -337,7 +358,7 @@ def register_routes(app):
             return redirect(url_for('user', username=recipient))
         return render_template('send_message.html', title='Send Message', form=form, recipient=recipient)
 
-
+    # Favicon-route
     @app.route('/favicon.ico')
     def favicon():
         return '', 204
