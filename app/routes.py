@@ -1,11 +1,9 @@
 from flask import session, render_template, flash, redirect, url_for, request, g, current_app, jsonify
-from flask_babel import _, get_locale
 import sqlalchemy as sa
 from app import db, oauth
 from app.forms import PostForm, EditProfileForm, EmptyForm, MessageForm
 from app.models import User, Post, Message, Notification, CalendarCredentials
 from app.calendar_service import GoogleCalendarService
-from langdetect import detect, LangDetectException
 from datetime import datetime, timezone
 import logging
 import secrets
@@ -49,7 +47,6 @@ def register_routes(app):
         if user:
             user.last_seen = datetime.now(timezone.utc)
             db.session.commit()
-        g.locale = str(get_locale())
 
     @app.route('/login')
     def login():
@@ -96,7 +93,7 @@ def register_routes(app):
                         f"Email {email} already in use by another user with sub: {existing_user_with_email.sub}")
                     session.clear()
                     flash(
-                        _('This email address is already in use by another account. Please log in with a different account.'),
+                        'This email address is already in use by another account. Please log in with a different account.',
                         'danger')
                     logout_url = (
                         f"https://{app.config['AUTH0_DOMAIN']}/v2/logout?"
@@ -123,7 +120,7 @@ def register_routes(app):
                             f"Email {email} already in use by another user with sub: {existing_user_with_email.sub}")
                         session.clear()
                         flash(
-                            _('This email address is already in use by another account. Please log in with a different account.'),
+                            'This email address is already in use by another account. Please log in with a different account.',
                             'danger')
                         logout_url = (
                             f"https://{app.config['AUTH0_DOMAIN']}/v2/logout?"
@@ -192,21 +189,17 @@ def register_routes(app):
             return redirect(url_for('login'))
         form = PostForm()
         if form.validate_on_submit():
-            try:
-                language = detect(form.post.data)
-            except LangDetectException:
-                language = ''
-            post = Post(body=form.post.data, author=user, language=language)
+            post = Post(body=form.post.data, author=user)
             db.session.add(post)
             db.session.commit()
-            flash(_('Your post is now live!'))
+            flash('Your post is now live!')
             return redirect(url_for('index'))
         page = request.args.get('page', 1, type=int)
         posts = db.paginate(user.following_posts(), page=page,
                             per_page=app.config['POSTS_PER_PAGE'], error_out=False)
         next_url = url_for('index', page=posts.next_num) if posts.has_next else None
         prev_url = url_for('index', page=posts.prev_num) if posts.has_prev else None
-        return render_template('index.html', title=_('Home'), form=form,
+        return render_template('index.html', title='Home', form=form,
                                posts=posts.items, next_url=next_url, prev_url=prev_url)
 
     @app.route('/explore')
@@ -219,7 +212,7 @@ def register_routes(app):
                             per_page=app.config['POSTS_PER_PAGE'], error_out=False)
         next_url = url_for('explore', page=posts.next_num) if posts.has_next else None
         prev_url = url_for('explore', page=posts.prev_num) if posts.has_prev else None
-        return render_template('index.html', title=_('Explore'),
+        return render_template('index.html', title='Explore',
                                posts=posts.items, next_url=next_url, prev_url=prev_url)
 
     @app.route('/user/<username>')
@@ -247,12 +240,12 @@ def register_routes(app):
             user.username = form.username.data
             user.about_me = form.about_me.data
             db.session.commit()
-            flash(_('Your changes have been saved.'))
+            flash('Your changes have been saved.')
             return redirect(url_for('edit_profile'))
         elif request.method == 'GET':
             form.username.data = user.username
             form.about_me.data = user.about_me
-        return render_template('edit_profile.html', title=_('Edit Profile'), form=form)
+        return render_template('edit_profile.html', title='Edit Profile', form=form)
 
     @app.route('/follow/<username>', methods=['POST'])
     def follow(username):
@@ -263,14 +256,14 @@ def register_routes(app):
             user = db.session.scalar(sa.select(User).where(User.username == username))
             current_user = get_current_user()
             if user is None:
-                flash(_('User %(username)s not found.', username=username))
+                flash('User %(username)s not found.', username=username)
                 return redirect(url_for('index'))
             if user == current_user:
-                flash(_('You cannot follow yourself!'))
+                flash('You cannot follow yourself!')
                 return redirect(url_for('user', username=username))
             current_user.follow(user)
             db.session.commit()
-            flash(_('You are following %(username)s!', username=username))
+            flash('You are following %(username)s!', username=username)
             return redirect(url_for('user', username=username))
         return redirect(url_for('index'))
 
@@ -283,14 +276,14 @@ def register_routes(app):
             user = db.session.scalar(sa.select(User).where(User.username == username))
             current_user = get_current_user()
             if user is None:
-                flash(_('User %(username)s not found.', username=username))
+                flash('User %(username)s not found.', username=username)
                 return redirect(url_for('index'))
             if user == current_user:
-                flash(_('You cannot unfollow yourself!'))
+                flash('You cannot unfollow yourself!')
                 return redirect(url_for('user', username=username))
             current_user.unfollow(user)
             db.session.commit()
-            flash(_('You are not following %(username)s.', username=username))
+            flash('You are not following %(username)s.', username=username)
             return redirect(url_for('user', username=username))
         return redirect(url_for('index'))
 
@@ -333,16 +326,16 @@ def register_routes(app):
         current_user = get_current_user()
         recipient_user = db.session.scalar(sa.select(User).where(User.username == recipient))
         if recipient_user is None:
-            flash(_('User %(username)s not found.', username=recipient))
+            flash('User %(username)s not found.', username=recipient)
             return redirect(url_for('index'))
         form = MessageForm()
         if form.validate_on_submit():
             msg = Message(author=current_user, recipient=recipient_user, body=form.message.data)
             db.session.add(msg)
             db.session.commit()
-            flash(_('Your message has been sent.'))
+            flash('Your message has been sent.')
             return redirect(url_for('user', username=recipient))
-        return render_template('send_message.html', title=_('Send Message'), form=form, recipient=recipient)
+        return render_template('send_message.html', title='Send Message', form=form, recipient=recipient)
 
 
     @app.route('/favicon.ico')

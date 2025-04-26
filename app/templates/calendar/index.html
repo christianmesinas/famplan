@@ -4,13 +4,13 @@
 <div class="container my-4">
     <div class="row">
         <div class="col-md-12">
-            <h1>{{ _('Calendar') }}</h1>
+            <h1>Calendar</h1>
             <div class="d-flex justify-content-end mb-3">
                 <button class="btn btn-primary" id="create-event-btn">
                     <i class="fa fa-plus me-1"></i> Create Event
                 </button>
             </div>
-            
+
             <div id="calendar"></div>
         </div>
     </div>
@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
             start: event.start.toISOString(),
             end: (event.end || new Date(event.start.getTime() + 60 * 60 * 1000)).toISOString()
         };
-        
+
         fetch(`{{ url_for('calendar.update_event', event_id='') }}${event.id}`, {
             method: 'PUT',
             headers: {
@@ -231,18 +231,18 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .catch(error => console.error('Error updating event:', error));
     }
-    
+
     function formatDatetimeForInput(date) {
         if (!date) return '';
-        
+
         const d = new Date(date);
         return d.getFullYear() + '-' +
-               padZero(d.getMonth() + 1) + '-' + 
-               padZero(d.getDate()) + 'T' + 
-               padZero(d.getHours()) + ':' + 
+               padZero(d.getMonth() + 1) + '-' +
+               padZero(d.getDate()) + 'T' +
+               padZero(d.getHours()) + ':' +
                padZero(d.getMinutes());
     }
-    
+
     function padZero(num) {
         return num.toString().padStart(2, '0');
     }

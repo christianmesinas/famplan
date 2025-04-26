@@ -17,9 +17,7 @@ class Config:
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
     ADMINS = ['chris1991.cg@gmail.com']
-    LANGUAGES= ['en', 'es']
     MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER')
-    MS_TRANSLATOR_KEY = os.environ.get('MS_TRANSLATOR_KEY')
     POSTS_PER_PAGE = 25
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -32,4 +30,3 @@ class Config:
     GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
 
     REDIS_URL = 'redis://localhost:6379/0'
-    SERVER_NAME = 'localhost:5000'
