@@ -1,3 +1,5 @@
+import secrets
+
 from flask import session, render_template, flash, redirect, url_for, request, jsonify
 import sqlalchemy as sa
 from app import db, oauth
@@ -38,12 +40,6 @@ def get_current_user():
     return user
 
 def register_routes(app):
-    """
-    Registreer alle routes voor de Flask-applicatie.
-
-    Args:
-        app: De Flask-applicatie-instantie.
-    """
     # Injecteer get_current_user in alle templates
     @app.context_processor
     def inject_current_user():

@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 import sqlalchemy.orm as so
-from app import db, cli, create_app
+from app import db, create_app
 from app.models import User, Post, Message, Notification, Task
 from flask_migrate import Migrate
 
