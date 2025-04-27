@@ -1,5 +1,5 @@
 import os
-from flask import Flask, Blueprint
+from flask import Flask
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -19,9 +19,7 @@ oauth = OAuth()
 
 load_dotenv()  # Laad omgevingsvariabelen uit .env bestand
 
-
 def create_app():
-
     app = Flask(__name__, static_folder='static')
     app.config.from_object(Config)
     app.secret_key = os.getenv('APP_SECRET_KEY')
@@ -82,5 +80,9 @@ def create_app():
     # Registreer calendar blueprint
     from app.calendar import bp as calendar_bp
     app.register_blueprint(calendar_bp)
+
+    # Registreer errors blueprint
+    from app.errors import bp as errors_bp
+    app.register_blueprint(errors_bp)
 
     return app
