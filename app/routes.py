@@ -269,14 +269,14 @@ def register_routes(app):
             user = db.session.scalar(sa.select(User).where(User.username == username))
             current_user = get_current_user()
             if user is None:
-                flash('User %(username)s not found.', username=username)
+                flash(f'User {username} not found.')
                 return redirect(url_for('index'))
             if user == current_user:
                 flash('You cannot follow yourself!')
                 return redirect(url_for('user', username=username))
             current_user.follow(user)
             db.session.commit()
-            flash('You are following %(username)s!', username=username)
+            flash(f'You are following {username}!')
             return redirect(url_for('user', username=username))
         return redirect(url_for('index'))
 
@@ -290,14 +290,14 @@ def register_routes(app):
             user = db.session.scalar(sa.select(User).where(User.username == username))
             current_user = get_current_user()
             if user is None:
-                flash('User %(username)s not found.', username=username)
+                flash(f'User {username} not found.')
                 return redirect(url_for('index'))
             if user == current_user:
                 flash('You cannot unfollow yourself!')
                 return redirect(url_for('user', username=username))
             current_user.unfollow(user)
             db.session.commit()
-            flash('You are not following %(username)s.', username=username)
+            flash(f'You are no longer following {username}.')
             return redirect(url_for('user', username=username))
         return redirect(url_for('index'))
 
