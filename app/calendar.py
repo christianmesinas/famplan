@@ -7,19 +7,21 @@ from datetime import datetime, timedelta
 import json
 from functools import wraps
 
+# Maak een Blueprint voor kalendergerelateerde routes
 bp = Blueprint('calendar', __name__)
 
 # Helperfuncties voor credentialbeheer
 def get_calendar_credentials(user_id):
-    """Helper om credentials op te halen voor een gebruiker."""
+    # Zoek de referenties in de database op basis van de gebruikers-ID
     return db.session.scalar(
         sa.select(CalendarCredentials).where(CalendarCredentials.user_id == user_id)
     )
 
+# Helperfunctie om referenties om te zetten naar een dictionary
 def credentials_to_dict(creds):
-    """Converteer credentials naar een dictionary voor de Google Calendar API."""
     if not creds:
         return None
+    # Maak een dictionary met de referentiegegevens
     return {
         'token': creds.token,
         'refresh_token': creds.refresh_token,
@@ -33,6 +35,7 @@ def credentials_to_dict(creds):
 # Decorators
 def login_required(f):
     @wraps(f)
+    # Behoud de metadata van de originele functie
     def decorated_function(*args, **kwargs):
         if 'user' not in session:
             return redirect(url_for('login'))
@@ -41,6 +44,7 @@ def login_required(f):
 
 def calendar_auth_required(f):
     @wraps(f)
+    # Behoud de metadata van de originele functie
     def decorated_function(*args, **kwargs):
         current_user = get_current_user()
         if not current_user:
@@ -72,8 +76,9 @@ def get_current_user():
 
 # Routes
 @bp.route('/calendar')
-@login_required
+@login_required  # Vereist dat de gebruiker is ingelogd
 def index():
+    #Als de gebruiker nog geen Google Calendar-referenties heeft, wordt een connect-pagina getoond.
     current_user = get_current_user()
     creds = get_calendar_credentials(current_user.id)
     if not creds:
@@ -82,19 +87,22 @@ def index():
     return render_template('calendar/index.html')
 
 @bp.route('/calendar/authorize')
-@login_required
+@login_required  # Vereist dat de gebruiker is ingelogd
 def authorize():
     flow = GoogleCalendarService.create_flow()
+    # Maak een OAuth2-flow aan
+    # Genereer een autorisatie-URL met specifieke parameters
     authorization_url, state = flow.authorization_url(
         access_type='offline',
         prompt='consent',
         include_granted_scopes='true'
     )
-    session['state'] = state
+    session['state'] = state  # Sla de 'state'-parameter op in de sessie om CSRF te voorkomen
     return redirect(authorization_url)
 
 @bp.route('/oauth2callback')
 def google_oauth2callback():
+    #Haalt de referenties op, slaat ze op in de database, en stuurt de gebruiker terug naar de kalenderpagina.
     if 'state' not in session:
         return redirect(url_for('calendar.index'))
 
@@ -103,9 +111,11 @@ def google_oauth2callback():
         return redirect(url_for('login'))
 
     flow = GoogleCalendarService.create_flow()
+    # Haal de referenties op van Google na autorisatie
     flow.fetch_token(authorization_response=request.url)
     credentials = flow.credentials
 
+    # Maak een dictionary met de referentiegegevens
     creds_data = {
         'token': credentials.token,
         'refresh_token': credentials.refresh_token,
@@ -129,8 +139,9 @@ def google_oauth2callback():
     return redirect(url_for('calendar.index'))
 
 @bp.route('/calendar/events')
-@calendar_auth_required
+@calendar_auth_required  # Vereist dat de gebruiker is ingelogd en referenties heeft
 def events():
+    #Haal een lijst van evenementen op uit de Google Calendar van de gebruiker.
     current_user = get_current_user()
     creds = get_calendar_credentials(current_user.id)
     creds_dict = credentials_to_dict(creds)
@@ -140,24 +151,24 @@ def events():
     service = GoogleCalendarService.get_calendar_service(creds_dict)
     start_date = request.args.get('start')
     end_date = request.args.get('end')
-
+    # Stel de startdatum in (standaard nu)
     if start_date:
         start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
     else:
         start_date = datetime.utcnow()
-
+    # Stel de einddatum in (standaard 30 dagen vanaf start)
     if end_date:
         end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
     else:
         end_date = start_date + timedelta(days=30)
-
+    # Haal de evenementen op uit de Google Calendar
     events = GoogleCalendarService.get_events(
         service,
         time_min=start_date,
         time_max=end_date,
         max_results=100
     )
-
+    # Formatteer de evenementen voor de JSON-respons
     formatted_events = []
     for event in events:
         start = event['start'].get('dateTime', event['start'].get('date'))
@@ -174,8 +185,9 @@ def events():
     return jsonify(formatted_events)
 
 @bp.route('/calendar/event', methods=['POST'])
-@calendar_auth_required
+@calendar_auth_required  # Vereist dat de gebruiker is ingelogd en referenties heeft
 def create_event():
+    #Maak een nieuw evenement aan in de Google Calendar van de gebruiker.
     current_user = get_current_user()
     creds = get_calendar_credentials(current_user.id)
     creds_dict = credentials_to_dict(creds)
@@ -187,6 +199,7 @@ def create_event():
     start_datetime = datetime.fromisoformat(data['start'].replace('Z', '+00:00'))
     end_datetime = datetime.fromisoformat(data['end'].replace('Z', '+00:00'))
 
+    # Maak een nieuw evenement aan in de Google Calendar
     event = GoogleCalendarService.create_event(
         service,
         summary=data['title'],
@@ -197,6 +210,7 @@ def create_event():
         attendees=data.get('attendees', [])
     )
 
+    # Retourneer het aangemaakte evenement in JSON-formaat
     return jsonify({
         'id': event['id'],
         'title': event['summary'],
@@ -205,7 +219,7 @@ def create_event():
     })
 
 @bp.route('/calendar/event/<event_id>', methods=['PUT'])
-@calendar_auth_required
+@calendar_auth_required  # Vereist dat de gebruiker is ingelogd en referenties heeft
 def update_event(event_id):
     current_user = get_current_user()
     creds = get_calendar_credentials(current_user.id)
