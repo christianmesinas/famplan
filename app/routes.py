@@ -13,17 +13,16 @@ from requests.exceptions import HTTPError
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Functie om de huidige ingelogde gebruiker op te halen
 def get_current_user():
-    """
-    Haal de huidige ingelogde gebruiker op uit de sessie.
-    Retourneert None als er geen gebruiker is ingelogd.
-    """
+
+    # Controleer of er een gebruiker in de sessie is opgeslagen
     if 'user' not in session:
         logger.debug("No user in session")
         return None
 
-    user_info = session['user'].get('userinfo', {})
-    logger.debug(f"User info: {user_info}")
+    user_info = session['user'].get('userinfo', {})  # Haal gebruikersinformatie op uit de sessie
+    logger.debug(f"User info: {user_info}")  # Log de gebruikersinformatie voor debugging
 
     # Gebruik 'sub' als unieke identifier
     sub = user_info.get('sub')
@@ -39,11 +38,12 @@ def get_current_user():
     logger.debug(f"Found user with sub: {sub}")
     return user
 
+# Functie om routes te registreren en te koppelen aan de Flask-app
 def register_routes(app):
     # Injecteer get_current_user in alle templates
     @app.context_processor
     def inject_current_user():
-        return dict(get_current_user=get_current_user)
+        return dict(get_current_user=get_current_user)  # Voeg get_current_user toe aan de template context
 
     # Update de last_seen-tijd van de gebruiker bij elk verzoek
     @app.before_request
@@ -58,10 +58,12 @@ def register_routes(app):
     def login():
         if 'user' in session:
             return redirect(url_for('index'))
+        # Genereer een willekeurige 'state'-parameter om CSRF-aanvallen te voorkomen
         session['auth0_state'] = secrets.token_urlsafe(32)
         redirect_uri = url_for('callback', _external=True)
         logger.debug(f"Generated redirect_uri: {redirect_uri}")
         prompt = request.args.get('prompt', 'select_account')
+        # Start de Auth0 inlogflow en stuur de gebruiker naar de inlogpagina
         return oauth.auth0.authorize_redirect(
             redirect_uri=redirect_uri,
             state=session['auth0_state'],
@@ -72,6 +74,7 @@ def register_routes(app):
     @app.route('/callback')
     def callback():
         try:
+            # Valideer de 'state'-parameter om CSRF-aanvallen te voorkomen
             received_state = request.args.get('state')
             expected_state = session.get('auth0_state')
             if received_state != expected_state:
@@ -79,6 +82,7 @@ def register_routes(app):
                 session.clear()
                 return redirect(url_for('login', prompt='login'))
 
+            # Haal de toegangstoken op van Auth0
             token = oauth.auth0.authorize_access_token()
             logger.debug(f"Token received: {token}")
             session['user'] = token
@@ -90,6 +94,7 @@ def register_routes(app):
                 session.clear()
                 return redirect(url_for('login', prompt='login'))
 
+            # Haal het e-mailadres op, of maak een dummy e-mail als het ontbreekt
             email = user_info.get('email')
             if not email:
                 email = f"{sub.replace('|', '_')}@noemail.example.com"
@@ -126,6 +131,7 @@ def register_routes(app):
                         logger.error(f"Email {email} already in use by another user with sub: {existing_user_with_email.sub}")
                         session.clear()
                         flash('This email address is already in use by another account.', 'danger')
+                        # Maak een logout-URL om de gebruiker uit te loggen
                         logout_url = (
                             f"https://{app.config['AUTH0_DOMAIN']}/v2/logout?"
                             f"federated&returnTo={url_for('login', _external=True, prompt='login')}&client_id={app.config['AUTH0_CLIENT_ID']}"
@@ -160,7 +166,7 @@ def register_routes(app):
     # Route om uit te loggen
     @app.route('/logout')
     def logout():
-        session.clear()
+        session.clear()  # Maak de sessie leeg om de gebruiker uit te loggen
         return redirect(
             f"https://{app.config['AUTH0_DOMAIN']}/v2/logout?"
             f"returnTo={url_for('index', _external=True)}&client_id={app.config['AUTH0_CLIENT_ID']}"
@@ -169,9 +175,10 @@ def register_routes(app):
     # API-route om een gebruiker aan te maken
     @app.route('/api/users', methods=['POST'])
     def create_user():
-        data = request.get_json()
+        data = request.get_json()  # Haal de JSON-data op uit het verzoek
         if not data or 'email' not in data:
             return jsonify({'error': 'Email is required'}), 400
+        # Controleer of een gebruiker met dit e-mailadres al bestaat
         user = db.session.scalar(sa.select(User).where(User.email == data['email']))
         if not user:
             user = User(
