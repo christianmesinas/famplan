@@ -16,7 +16,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
     <link href="{{ url_for('static', filename='fullcalendar/main.min.css') }}" rel="stylesheet">
     <script src="{{ url_for('static', filename='fullcalendar/main.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='fullcalendar/calendar.js') }}"></script>
   </head>
   <body>
     <nav class="navbar navbar-expand-lg bg-body-tertiary">
@@ -157,5 +156,6 @@
       document.addEventListener('DOMContentLoaded', initialize_notifications);
       {% endif %}
     </script>
+    {% block scripts %}{% endblock %}
   </body>
 </html>
