@@ -58,17 +58,27 @@ def register_routes(app):
     def login():
         if 'user' in session:
             return redirect(url_for('index'))
-        # Genereer een willekeurige 'state'-parameter om CSRF-aanvallen te voorkomen
+
+        # Genereer CSRF token
         session['auth0_state'] = secrets.token_urlsafe(32)
         redirect_uri = url_for('callback', _external=True)
         logger.debug(f"Generated redirect_uri: {redirect_uri}")
-        prompt = request.args.get('prompt', 'select_account')
-        # Start de Auth0 inlogflow en stuur de gebruiker naar de inlogpagina
-        return oauth.auth0.authorize_redirect(
-            redirect_uri=redirect_uri,
-            state=session['auth0_state'],
-            prompt=prompt
-        )
+
+        # Nieuw: gebruik screen_hint om login/signup onderscheid te maken
+        screen_hint = request.args.get('screen_hint')  # kan 'signup' of None zijn
+
+        # Bouw de argumenten voor authorize_redirect dynamisch
+        args = {
+            'redirect_uri': redirect_uri,
+            'state': session['auth0_state'],
+            'prompt': 'select_account',
+        }
+
+        if screen_hint:
+            args['screen_hint'] = screen_hint
+
+        return oauth.auth0.authorize_redirect(**args)
+
 
     # Route om de Auth0-callback af te handelen
     @app.route('/callback')
@@ -196,8 +206,8 @@ def register_routes(app):
     @app.route('/index', methods=['GET', 'POST'])
     def index():
         if 'user' not in session:
-            logger.debug("No user in session, redirecting to login")
-            return redirect(url_for('login'))
+            logger.debug("No user in session, showing landing page")
+            return render_template('landings.html')
         user = get_current_user()
         if user is None:
             logger.error("User is None despite session, forcing logout")
@@ -216,7 +226,7 @@ def register_routes(app):
         next_url = url_for('index', page=posts.next_num) if posts.has_next else None
         prev_url = url_for('index', page=posts.prev_num) if posts.has_prev else None
         return render_template('index.html', title='Home', form=form,
-                              posts=posts.items, next_url=next_url, prev_url=prev_url)
+                               posts=posts.items, next_url=next_url, prev_url=prev_url)
 
     # Explore-pagina om alle posts te bekijken
     @app.route('/explore')
