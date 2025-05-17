@@ -37,7 +37,12 @@ class GoogleCalendarService:
             }
         }
         # Definieer de scopes (toegangsniveau) die nodig zijn voor de Google Calendar API
-        scopes = ['https://www.googleapis.com/auth/calendar']
+        scopes = [
+            'https://www.googleapis.com/auth/calendar',
+            'https://www.googleapis.com/auth/userinfo.profile',
+            'https://www.googleapis.com/auth/userinfo.email',
+            'openid'
+        ]
         # Maak een OAuth2-flow aan met de clientconfiguratie en scopes
         flow = Flow.from_client_config(
             client_config,
