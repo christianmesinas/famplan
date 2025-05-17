@@ -2,7 +2,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from flask import url_for, current_app
 from google_auth_oauthlib.flow import Flow
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 
 # Klasse om interacties met de Google Calendar API te beheren
@@ -96,8 +96,8 @@ class GoogleCalendarService:
             # Haal evenementen op uit de kalender met de opgegeven parameters
             events_result = service.events().list(
                 calendarId=calendar_id,
-                timeMin=time_min.isoformat() + 'Z',
-                timeMax=time_max.isoformat() + 'Z',
+                timeMin=time_min.astimezone(timezone.utc).isoformat(),
+                timeMax=time_max.astimezone(timezone.utc).isoformat(),
                 maxResults=max_results,
                 singleEvents=True,
                 orderBy='startTime'
@@ -210,8 +210,8 @@ class GoogleCalendarService:
 
             # Maak een verzoek voor vrije/beschikbare tijden
             body = {
-                "timeMin": time_min.isoformat() + 'Z',
-                "timeMax": time_max.isoformat() + 'Z',
+                "timeMin": time_min.astimezone(timezone.utc).isoformat(),
+                "timeMax": time_max.astimezone(timezone.utc).isoformat(),
                 "items": [{"id": calendar} for calendar in calendars]
             }
             result = service.freebusy().query(body=body).execute()
