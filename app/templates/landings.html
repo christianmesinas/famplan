@@ -18,13 +18,21 @@
         </div>
     </nav>
 <div class="deco-1"></div>
-    <div style="margin-left: 15rem;
+    <div style="margin-left: 20vw;
     margin-top: 5rem;">
         <h3 class="semi-big">Where plans spread roots</h3>
         <p class="broodtext">Famplan is a platform where family and friends can come together to keep all their plans in check. Plant a Family Tree and let your plans and appointments branch out and communicate your ideas! Leaf it up to Famplan to make it all happen!</p>
-        <a href="{{ url_for('login', screen_hint='') }}"><button class="login-button">LOGIN</button></a>
-        <a href="{{ url_for('login', screen_hint='signup') }}"><button class="register-button">REGISTER</button></a>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <a href="{{ url_for('login', screen_hint='') }}"><button class="login-button">LOGIN</button></a>
+            <a href="{{ url_for('login', screen_hint='signup') }}"><button class="register-button">REGISTER</button></a>
+        </div>
 </div>
+    <div class="front-pic">
+        <div class="family"></div>
+        <div class="tree"></div>
+        <div class="earth"></div>
+    </div>
+    <div class="deco-2"></div>
 </div>
 </body>
 </html>
