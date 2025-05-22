@@ -109,7 +109,7 @@ def authorize():
     authorization_url, state = flow.authorization_url(
         access_type='offline',
         prompt='consent',
-        include_granted_scopes='true'
+        include_granted_scopes=False
     )
     session['state'] = state  # Sla de 'state'-parameter op in de sessie om CSRF te voorkomen
     return redirect(authorization_url)
