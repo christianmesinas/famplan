@@ -54,3 +54,9 @@ pytest_cache/
 *.bak
 *.tmp
 *.pid
+
+#migrations
+Migrations/
+.Migrations/
+migrations/
+.migrations/
