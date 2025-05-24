@@ -53,32 +53,6 @@ def register_routes(app):
             user.last_seen = datetime.now(timezone.utc)
             db.session.commit()
 
-    # Route om in te loggen via Auth0
-    @app.route('/login')
-    def login():
-        if 'user' in session:
-            return redirect(url_for('index'))
-
-        # Genereer CSRF token
-        session['auth0_state'] = secrets.token_urlsafe(32)
-        redirect_uri = url_for('callback', _external=True)
-        logger.debug(f"Generated redirect_uri: {redirect_uri}")
-
-        # Nieuw: gebruik screen_hint om login/signup onderscheid te maken
-        screen_hint = request.args.get('screen_hint')  # kan 'signup' of None zijn
-
-        # Bouw de argumenten voor authorize_redirect dynamisch
-        args = {
-            'redirect_uri': redirect_uri,
-            'state': session['auth0_state'],
-            'prompt': 'select_account',
-        }
-
-        if screen_hint:
-            args['screen_hint'] = screen_hint
-
-        return oauth.auth0.authorize_redirect(**args)
-
 
     # Route om de Auth0-callback af te handelen
     @app.route('/callback')
@@ -375,3 +349,32 @@ def register_routes(app):
     @app.route('/favicon.ico')
     def favicon():
         return '', 204
+
+    @app.route('/auth/login')
+    def auth_login():
+        if 'user' in session:
+            return redirect(url_for('index'))
+
+        session['auth0_state'] = secrets.token_urlsafe(32)
+        redirect_uri = url_for('callback', _external=True)
+
+        return oauth.auth0.authorize_redirect(
+            redirect_uri=redirect_uri,
+            state=session['auth0_state'],
+            prompt='select_account'
+        )
+
+    @app.route('/auth/register')
+    def auth_register():
+        if 'user' in session:
+            return redirect(url_for('index'))
+
+        session['auth0_state'] = secrets.token_urlsafe(32)
+        redirect_uri = url_for('callback', _external=True)
+
+        return oauth.auth0.authorize_redirect(
+            redirect_uri=redirect_uri,
+            state=session['auth0_state'],
+            prompt='select_account',
+            screen_hint='signup'  # dwingt registratie aan
+        )

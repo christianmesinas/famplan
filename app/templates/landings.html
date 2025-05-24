@@ -23,9 +23,9 @@
         <h3 class="semi-big">Where plans spread roots</h3>
         <p class="broodtext">Famplan is a platform where family and friends can come together to keep all their plans in check. Plant a Family Tree and let your plans and appointments branch out and communicate your ideas! Leaf it up to Famplan to make it all happen!</p>
         <div style="display: flex; flex-direction: column; gap: 10px;">
-            <a href="{{ url_for('login', screen_hint='') }}"><button class="login-button">LOGIN</button></a>
-            <a href="{{ url_for('login', screen_hint='signup') }}"><button class="register-button">REGISTER</button></a>
-        </div>
+           <a href="{{ url_for('auth_login') }}"><button class="login-button">LOGIN</button></a>
+            <a href="{{ url_for('auth_register') }}"><button class="register-button">REGISTER</button></a>
+   </div>
 </div>
     <div class="front-pic">
         <div class="family"></div>
