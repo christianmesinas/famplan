@@ -199,21 +199,6 @@ class Task(db.Model):
     complete: so.Mapped[bool] = so.mapped_column(default=False)
     user: so.Mapped[User] = so.relationship(back_populates='tasks')
 
-    # Haal de RQ-job op die bij deze taak hoort
-    def get_rq_job(self):
-        try:
-            # Gebruik current_app.config voor Redis-verbinding
-            redis_url = current_app.config['REDIS_URL']
-            redis_conn = redis.Redis.from_url(redis_url)
-            rq_job = rq.job.Job.fetch(self.id, connection=redis_conn)
-        except (redis.exceptions.RedisError, rq.exceptions.NoSuchJobError):
-            return None
-        return rq_job
-
-    # Haal de voortgang van de taak op
-    def get_progress(self):
-        job = self.get_rq_job()
-        return job.meta.get('progress', 0) if job is not None else 100
 
 # Klasse die de kalenderreferenties van een gebruiker opslaat (voor integratie met Google Calendar)
 class CalendarCredentials(db.Model):

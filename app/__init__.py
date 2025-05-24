@@ -74,15 +74,11 @@ def create_app():
         app.logger.info('famplan startup')
 
     # Importeer app-modules
-    from app import routes, models, errors
+    from app import routes, models
     routes.register_routes(app)
 
     # Registreer calendar blueprint
     from app.calendar import bp as calendar_bp
     app.register_blueprint(calendar_bp)
-
-    # Registreer errors blueprint
-    from app.errors import bp as errors_bp
-    app.register_blueprint(errors_bp)
 
     return app
