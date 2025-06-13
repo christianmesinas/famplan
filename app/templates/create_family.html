@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Create Family{% endblock %}
+
+{% block content %}
+  <h1>Create a new Family</h1>
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+      {{ form.name.label(class="form-label") }}
+      {{ form.name(class="form-control") }}
+      {% for err in form.name.errors %}
+        <div class="text-danger">{{ err }}</div>
+      {% endfor %}
+    </div>
+    {{ form.submit(class="btn btn-primary") }}
+  </form>
+{% endblock %}
