@@ -186,7 +186,7 @@ def register_routes(app):
         if user is None:
             logger.error("User is None despite session, forcing logout")
             session.clear()
-            return redirect(url_for('login'))
+            return redirect(url_for('auth_login'))
         form = PostForm()
         if form.validate_on_submit():
             post = Post(body=form.post.data, author=user)
