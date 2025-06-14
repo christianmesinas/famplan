@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Invite to {{ family.name }}{% endblock %}
+
+{% block content %}
+  <h1>Invite Members to “{{ family.name }}”</h1>
+
+  <form method="post">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+      {{ form.invited_email.label(class="form-label") }}
+      {{ form.invited_email(class="form-control", placeholder="example@domain.com") }}
+      {% for err in form.invited_email.errors %}
+        <div class="text-danger">{{ err }}</div>
+      {% endfor %}
+    </div>
+    {{ form.submit(class="btn btn-secondary") }}
+  </form>
+
+  {% if join_url %}
+    <hr>
+    <p>Share this link (expires {{ expires_at.strftime('%Y-%m-%d %H:%M') }} UTC):</p>
+    <code>{{ join_url }}</code>
+  {% endif %}
+{% endblock %}

@@ -4,40 +4,77 @@
     {% set current_user = get_current_user() %}
     <table class="table table-hover">
         <tr>
-            <td width="256px"><img src="{{ user.avatar(256) }}"></td>
+            <td width="256px">
+                <img src="{{ user.avatar(256) }}" alt="Avatar for {{ user.username }}">
+            </td>
             <td>
                 <h1>User: {{ user.username }}</h1>
-                {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
+                {% if user.about_me %}
+                    <p>{{ user.about_me }}</p>
+                {% endif %}
                 {% if user.last_seen %}
-                <p>Last seen on: {{ moment(user.last_seen).format('LLL') }}</p>
+                    <p>Last seen on: {{ moment(user.last_seen).format('LLL') }}</p>
                 {% endif %}
                 <p>{{ user.followers_count() }} followers, {{ user.following_count() }} following.</p>
+
+                {# If viewing your own profile, show edit link #}
                 {% if user == current_user %}
-                <p><a href="{{ url_for('edit_profile') }}">Edit your profile</a></p>
+                    <p><a href="{{ url_for('edit_profile') }}">Edit your profile</a></p>
+
+                {# Otherwise, show follow/unfollow button #}
                 {% elif current_user %}
-                <p>
-                    {% if current_user.is_following(user) %}
-                    <form action="{{ url_for('unfollow', username=user.username) }}" method="post">
-                        {{ form.hidden_tag() }}
-                        {{ form.submit(value='Unfollow', class_='btn btn-primary') }}
-                    </form>
-                    {% else %}
-                    <form action="{{ url_for('follow', username=user.username) }}" method="post">
-                        {{ form.hidden_tag() }}
-                        {{ form.submit(value='Follow', class_='btn btn-primary') }}
-                    </form>
-                    {% endif %}
-                </p>
+                    <p>
+                        {% if current_user.is_following(user) %}
+                            <form action="{{ url_for('unfollow', username=user.username) }}" method="post">
+                                {{ form.hidden_tag() }}
+                                {{ form.submit(value='Unfollow', class_='btn btn-primary') }}
+                            </form>
+                        {% else %}
+                            <form action="{{ url_for('follow', username=user.username) }}" method="post">
+                                {{ form.hidden_tag() }}
+                                {{ form.submit(value='Follow', class_='btn btn-primary') }}
+                            </form>
+                        {% endif %}
+                    </p>
                 {% endif %}
+
+                {# If not viewing yourself, allow private message #}
                 {% if user != current_user and current_user %}
-                <p><a href="{{ url_for('send_message', recipient=user.username) }}">Send private message</a></p>
+                    <p><a href="{{ url_for('send_message', recipient=user.username) }}">Send private message</a></p>
                 {% endif %}
             </td>
         </tr>
     </table>
+
+    {# Add a section listing all families this user belongs to          #}
+    <hr>
+    <h2>Families</h2>
+    {% if user.families %}
+        <ul class="list-group mb-4">
+            {% for fam in user.families %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {# Link to invite-management page for that family #}
+                    <a href="{{ url_for('invite_family', family_id=fam.id) }}">
+                        {{ fam.name }}
+                    </a>
+                    {# Show how many members this family has #}
+                    <span class="badge bg-secondary rounded-pill">
+                        {{ fam.memberships|length }}
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted">
+            This user is not a member of any family yet.
+        </p>
+    {% endif %}
+
+    {# Existing posts loop #}
     {% for post in posts %}
         {% include '_post.html' %}
     {% endfor %}
+
     <nav aria-label="Post navigation">
         <ul class="pagination">
             <li class="page-item{% if not prev_url %} disabled{% endif %}">

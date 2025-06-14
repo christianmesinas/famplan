@@ -40,3 +40,30 @@ class MessageForm(FlaskForm):
     message = TextAreaField('Message', validators=[
         DataRequired(), Length(min=1, max=140)])
     submit = SubmitField('Submit')
+
+# -----------------------------------------------
+# Family stuff ahead
+# -----------------------------------------------
+class FamilyForm(FlaskForm):
+    """Form to create a new Family."""
+    name = StringField(
+        'Family name',
+        validators=[DataRequired(), Length(min=3, max=64)]
+    )
+    submit = SubmitField('Create Family')
+
+class InviteForm(FlaskForm):
+    """Form to generate (or re-generate) an invite token."""
+    invited_email = StringField(
+        'Invitee email (optional)',
+        validators=[Length(max=120)]
+    )
+    submit = SubmitField('Generate Invite')
+
+class JoinForm(FlaskForm):
+    """Form where a user enters a token to join a Family."""
+    token = StringField(
+        'Join token',
+        validators=[DataRequired(), Length(min=8, max=64)]
+    )
+    submit = SubmitField('Join Family')
