@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, url_for, session, request, render_template, flash, current_app, jsonify
 from app import db, oauth
-from app.models import User, CalendarCredentials
+from app.models import User, CalendarCredentials, Membership, Family
 from app.calendar_service import GoogleCalendarService
 import sqlalchemy as sa
 from datetime import datetime, timedelta
@@ -114,6 +114,48 @@ def authorize():
     session['state'] = state  # Sla de 'state'-parameter op in de sessie om CSRF te voorkomen
     return redirect(authorization_url)
 
+@bp.route('/create_event', methods=['POST'])
+@calendar_auth_required
+def create_event():
+    logger = logging.getLogger(__name__)
+    current_user = get_current_user()
+    creds = get_calendar_credentials(current_user.id)
+    creds_dict = credentials_to_dict(creds)
+    if not creds_dict:
+        logger.warning("Geen referenties voor huidige gebruiker")
+        return jsonify({'error': 'Google Calendar niet geautoriseerd'}), 401
+
+    data = request.get_json()
+    if not data or not all(k in data for k in ['title', 'start', 'end']):
+        logger.warning("Ongeldige evenementgegevens ontvangen")
+        return jsonify({'error': 'Ongeldige gegevens'}), 400
+
+    try:
+        service = GoogleCalendarService.get_calendar_service(creds_dict)
+        event = GoogleCalendarService.create_event(
+            service,
+            calendar_id='primary',
+            summary=data['title'],
+            start_datetime=data['start'],
+            end_datetime=data['end'],
+            description=data.get('description', ''),
+            location=data.get('location', ''),
+            attendees=data.get('attendees', [])
+        )
+        logger.info(f"Evenement aangemaakt met ID: {event.get('id')}")
+        return jsonify({
+            'id': event['id'],
+            'title': event['summary'],
+            'start': event['start'].get('dateTime', event['start'].get('date')),
+            'end': event['end'].get('dateTime', event['end'].get('date')),
+            'description': event.get('description', ''),
+            'location': event.get('location', ''),
+            'attendees': [attendee['email'] for attendee in event.get('attendees', [])]
+        }), 201
+    except Exception as e:
+        logger.error(f"Fout bij aanmaken evenement: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @bp.route('/oauth2callback')
 def google_oauth2callback():
     #Haalt de referenties op, slaat ze op in de database, en stuurt de gebruiker terug naar de kalenderpagina.
@@ -151,53 +193,6 @@ def google_oauth2callback():
     db.session.commit()
     flash('Google Calendar connected successfully!')
     return redirect(url_for('calendar.index'))
-
-@bp.route('/calendar/events')
-@calendar_auth_required  # Vereist dat de gebruiker is ingelogd en referenties heeft
-def events():
-    #Haal een lijst van evenementen op uit de Google Calendar van de gebruiker.
-    current_user = get_current_user()
-    creds = get_calendar_credentials(current_user.id)
-    creds_dict = credentials_to_dict(creds)
-    if not creds_dict:
-        return redirect(url_for('calendar.authorize'))
-
-    service = GoogleCalendarService.get_calendar_service(creds_dict)
-    start_date = request.args.get('start')
-    end_date = request.args.get('end')
-    # Stel de startdatum in (standaard nu)
-    if start_date:
-        start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
-    else:
-        start_date = datetime.utcnow()
-    # Stel de einddatum in (standaard 30 dagen vanaf start)
-    if end_date:
-        end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
-    else:
-        end_date = start_date + timedelta(days=30)
-    # Haal de evenementen op uit de Google Calendar
-    events = GoogleCalendarService.get_events(
-        service,
-        time_min=start_date,
-        time_max=end_date,
-        max_results=100
-    )
-    # Formatteer de evenementen voor de JSON-respons
-    formatted_events = []
-    for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        end = event['end'].get('dateTime', event['end'].get('date'))
-        formatted_events.append({
-            'id': event['id'],
-            'title': event['summary'],
-            'start': start,
-            'end': end,
-            'description': event.get('description', ''),
-            'location': event.get('location', '')
-        })
-
-    return jsonify(formatted_events)
-
 
 @bp.route('/calendar/events')
 @calendar_auth_required
@@ -291,6 +286,7 @@ def events():
         })
 
     return jsonify(formatted_events)
+
 
 @bp.route('/calendar/event/<event_id>', methods=['PUT'])
 @calendar_auth_required  # Vereist dat de gebruiker is ingelogd en referenties heeft
