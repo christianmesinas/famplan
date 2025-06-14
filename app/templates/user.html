@@ -65,7 +65,7 @@
                 action="{{ url_for('leave_family', family_id=fam.id) }}"
                 method="post"
                 class="ms-3 leave-family-form"
-                onsubmit="return confirm('You are about to leave the family “{{ fam.name }}”.\\nAre you sure?');"
+                onsubmit="return confirm('You are about to leave the family “{{ fam.name }}”. Are you sure?');"
               >
                 {{ form.hidden_tag() }}
                 <button type="submit" class="btn btn-outline-danger btn-sm">

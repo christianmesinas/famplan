@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Deleting event');
         const eventId = document.getElementById('eventId').value;
         if (!eventId) return;
-        if (confirm('Are you sure you want to delete this event?')) {
+        if (confirm(' Are you sure you want to delete this event?')) {
             fetch(deleteUrlTemplate.replace('EVENT_ID', eventId), {
                 method: 'DELETE'
             })
