@@ -1,4 +1,3 @@
-// calendar.js
 let calendar;
 
 function initializeCalendar() {
@@ -7,35 +6,71 @@ function initializeCalendar() {
     const createEventUrl = calendarEl.dataset.eventUrl;
     const updateEventUrlTemplate = calendarEl.dataset.updateUrl;
     const deleteEventUrlTemplate = calendarEl.dataset.deleteUrl;
+    const familyMembersUrl = calendarEl.dataset.familyMembersUrl;
+    const familySelect = document.getElementById('family-select');
 
-    calendar = new FullCalendar.Calendar(calendarEl, {
+    // Laad familieleden voor het formulier
+    loadFamilyMembers(familyMembersUrl);
+
+   calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
-        events: eventsUrl,
+        locale: 'nl', // Toegevoegd: Nederlandse locale voor 24-uursnotatie en NL-taal
+        timeZone: 'Europe/Amsterdam', // Toegevoegd: Tijdzone voor CEST
+        slotLabelFormat: { // Toegevoegd: 24-uursnotatie voor tijdlabels in week/dag-weergaven
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        },
+        eventTimeFormat: { // Toegevoegd: 24-uursnotatie voor evenementtijden
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        },
+        events: function(fetchInfo, successCallback, failureCallback) {
+            const url = eventsUrl + (familySelect.value ? `?family_id=${familySelect.value}` : '');
+            console.log('Fetching events from:', url);
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Received events:', data);
+                    // Verwerk titels om voorvoegsels te verwijderen
+                    data.forEach(event => {
+                        if (event.title) {
+                            event.title = event.title.replace(/^(.*?): /, '');
+                        }
+                    });
+                    successCallback(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching events:', error);
+                    failureCallback(error);
+                });
+        },
         editable: true,
         selectable: true,
         eventDidMount: function(info) {
-            // Kleurcodering voor familieleden
+            console.log('Rendering event:', info.event);
             if (info.event.extendedProps.family_member_name) {
-                const colors = {
-                    // Voorbeeld: statische kleuren per gebruikersnaam
-                    // Je kunt een hash-functie toevoegen voor dynamische kleuren
-                    'user1': '#ff0000',
-                    'user2': '#00ff00'
-                };
-                info.el.style.backgroundColor = colors[info.event.extendedProps.family_member_name] || '#ff5733';
-                info.el.style.borderColor = colors[info.event.extendedProps.family_member_name] || '#ff5733';
+                info.el.style.backgroundColor = stringToColor(info.event.extendedProps.family_member_name);
+                info.el.style.borderColor = stringToColor(info.event.extendedProps.family_member_name);
             } else {
-                info.el.style.backgroundColor = '#3788d8'; // Eigen evenementen
+                info.el.style.backgroundColor = '#3788d8';
                 info.el.style.borderColor = '#3788d8';
+            }
+            // Zorg dat de titel volledig wordt weergegeven
+            const titleEl = info.el.querySelector('.fc-event-title');
+            if (titleEl) {
+                titleEl.style.whiteSpace = 'normal';
+                titleEl.style.overflow = 'visible';
+                titleEl.style.textOverflow = 'clip';
             }
         },
         eventClick: function(info) {
-            // Alleen eigen evenementen kunnen worden bewerkt
             if (!info.event.extendedProps.family_member_name) {
                 openEventModal(info.event, updateEventUrlTemplate, deleteEventUrlTemplate);
             } else {
@@ -46,7 +81,6 @@ function initializeCalendar() {
             openEventModal(null, createEventUrl, null, info.startStr, info.endStr);
         },
         eventDrop: function(info) {
-            // Update evenement bij slepen
             if (!info.event.extendedProps.family_member_name) {
                 updateEvent(info.event, updateEventUrlTemplate.replace('EVENT_ID', info.event.id));
             } else {
@@ -55,7 +89,6 @@ function initializeCalendar() {
             }
         },
         eventResize: function(info) {
-            // Update evenement bij wijzigen grootte
             if (!info.event.extendedProps.family_member_name) {
                 updateEvent(info.event, updateEventUrlTemplate.replace('EVENT_ID', info.event.id));
             } else {
@@ -68,6 +101,24 @@ function initializeCalendar() {
     calendar.render();
 }
 
+function loadFamilyMembers(url) {
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('eventFamilyMembers');
+            select.innerHTML = ''; // Leeg de lijst
+            data.forEach(member => {
+                const option = document.createElement('option');
+                option.value = member.email;
+                option.textContent = member.username;
+                select.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Fout bij laden familieleden:', error);
+        });
+}
+
 function openEventModal(event, createOrUpdateUrl, deleteUrl, startStr, endStr) {
     const modal = new bootstrap.Modal(document.getElementById('eventModal'));
     const form = document.getElementById('eventForm');
@@ -76,26 +127,26 @@ function openEventModal(event, createOrUpdateUrl, deleteUrl, startStr, endStr) {
     const end = document.getElementById('eventEnd');
     const description = document.getElementById('eventDescription');
     const location = document.getElementById('eventLocation');
+    const familyMembers = document.getElementById('eventFamilyMembers');
     const attendees = document.getElementById('eventAttendees');
     const eventIdInput = document.getElementById('eventId');
     const deleteBtn = document.getElementById('deleteEventBtn');
     const modalTitle = document.getElementById('eventModalLabel');
     const saveBtn = document.getElementById('saveEventBtn');
 
-    // Reset form
     form.reset();
     eventIdInput.value = '';
+    familyMembers.selectedOptions = []; // Reset geselecteerde familieleden
 
     if (event) {
-        // Bestaand evenement bewerken
         modalTitle.textContent = 'Edit Event';
         eventIdInput.value = event.id;
-        title.value = event.title.replace(/^(.*?): /, ''); // Verwijder gebruikersnaam/familie-prefix
+        title.value = event.title.replace(/^(.*?): /, '');
         start.value = event.start.toISOString().slice(0, 16);
         end.value = event.end ? event.end.toISOString().slice(0, 16) : '';
         description.value = event.extendedProps.description || '';
         location.value = event.extendedProps.location || '';
-        attendees.value = event.extendedProps.attendees || '';
+        attendees.value = event.extendedProps.attendees ? event.extendedProps.attendees.join(', ') : '';
         deleteBtn.style.display = 'block';
         deleteBtn.onclick = function() {
             if (confirm('Weet je zeker dat je dit evenement wilt verwijderen?')) {
@@ -107,7 +158,6 @@ function openEventModal(event, createOrUpdateUrl, deleteUrl, startStr, endStr) {
             saveEvent(form, createOrUpdateUrl.replace('EVENT_ID', event.id), modal);
         };
     } else {
-        // Nieuw evenement aanmaken
         modalTitle.textContent = 'Create Event';
         start.value = startStr ? new Date(startStr).toISOString().slice(0, 16) : '';
         end.value = endStr ? new Date(endStr).toISOString().slice(0, 16) : '';
@@ -127,7 +177,8 @@ function saveEvent(form, url, modal) {
     const end = document.getElementById('eventEnd').value;
     const description = document.getElementById('eventDescription').value;
     const location = document.getElementById('eventLocation').value;
-    const attendees = document.getElementById('eventAttendees').value.split(',').map(email => email.trim()).filter(email => email);
+    const familyMembers = Array.from(document.getElementById('eventFamilyMembers').selectedOptions).map(option => option.value);
+    const extraAttendees = document.getElementById('eventAttendees').value.split(',').map(email => email.trim()).filter(email => email);
 
     if (!title || !start || !end) {
         alert('Vul alle verplichte velden in.');
@@ -140,7 +191,7 @@ function saveEvent(form, url, modal) {
         end: new Date(end).toISOString(),
         description: description,
         location: location,
-        attendees: attendees
+        attendees: [...familyMembers, ...extraAttendees]
     };
 
     fetch(url, {
@@ -202,18 +253,35 @@ function deleteEvent(eventId, url) {
     });
 }
 
+function stringToColor(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    let color = '#';
+    for (let i = 0; i < 3; i++) {
+        const value = (hash >> (i * 8)) & 0xFF;
+        color += ('00' + value.toString(16)).substr(-2);
+    }
+    return color;
+}
+
 function refreshCalendar(eventsUrl) {
     calendar.setOption('events', eventsUrl);
     calendar.refetchEvents();
 }
 
-// Initialiseer de kalender bij laden van de pagina
 document.addEventListener('DOMContentLoaded', function() {
     initializeCalendar();
     document.getElementById('create-event-btn').addEventListener('click', function() {
         openEventModal(null, document.getElementById('calendar').dataset.eventUrl);
     });
+    const familySelect = document.getElementById('family-select');
+    familySelect.addEventListener('change', function() {
+        const baseEventsUrl = document.getElementById('calendar').dataset.eventsUrl;
+        const eventsUrl = this.value ? `${baseEventsUrl}?family_id=${this.value}` : baseEventsUrl;
+        refreshCalendar(eventsUrl);
+    });
 });
 
-// Maak refreshCalendar globaal beschikbaar voor index.html
 window.refreshCalendar = refreshCalendar;

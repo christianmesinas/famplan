@@ -24,7 +24,8 @@
                  data-events-url="{{ url_for('calendar.events') }}"
                  data-event-url="{{ url_for('calendar.create_event') }}"
                  data-update-url="{{ url_for('calendar.update_event', event_id='EVENT_ID') }}"
-                 data-delete-url="{{ url_for('calendar.delete_event', event_id='EVENT_ID') }}">
+                 data-delete-url="{{ url_for('calendar.delete_event', event_id='EVENT_ID') }}"
+                 data-family-members-url="{{ url_for('calendar.family_members') }}">
             </div>
         </div>
     </div>
@@ -62,8 +63,14 @@
                         <input type="text" class="form-control" id="eventLocation">
                     </div>
                     <div class="mb-3">
-                        <label for="eventAttendees" class="form-label">Attendees (separate emails with commas)</label>
-                        <input type="text" class="form-control" id="eventAttendees">
+                        <label for="eventFamilyMembers" class="form-label">Family Members</label>
+                        <select multiple class="form-control" id="eventFamilyMembers">
+                            <!-- Options will be populated dynamically via JavaScript -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="eventAttendees" class="form-label">Extra Attendees (separate emails with commas)</label>
+                        <input type="text" class="form-control" id="eventAttendees" placeholder="example@domain.com, another@domain.com">
                     </div>
                 </form>
             </div>
@@ -91,7 +98,7 @@
             const calendarEl = document.getElementById('calendar');
             const baseEventsUrl = calendarEl.dataset.eventsUrl;
             const eventsUrl = this.value ? `${baseEventsUrl}?family_id=${this.value}` : baseEventsUrl;
-            // Trigger een herlaad van evenementen (veronderstelt dat calendar.js een refresh-functie heeft)
+            // Trigger een herlaad van evenementen
             window.refreshCalendar(eventsUrl);
         });
     });

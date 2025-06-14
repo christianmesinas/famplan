@@ -140,7 +140,7 @@ def create_event():
             end_datetime=data['end'],
             description=data.get('description', ''),
             location=data.get('location', ''),
-            attendees=data.get('attendees', [])
+            attendees=data.get('attendees', [])  # Inclusief familieleden en extra genodigden
         )
         logger.info(f"Evenement aangemaakt met ID: {event.get('id')}")
         return jsonify({
@@ -154,6 +154,38 @@ def create_event():
         }), 201
     except Exception as e:
         logger.error(f"Fout bij aanmaken evenement: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@bp.route('/family_members')
+@login_required
+def family_members():
+    from app import db
+    logger = logging.getLogger(__name__)
+    current_user = get_current_user()
+
+    try:
+        # Haal alle familieleden op uit gedeelde families
+        members = db.session.scalars(
+            sa.select(User)
+            .join(Membership)
+            .where(
+                Membership.family_id.in_(
+                    sa.select(Membership.family_id).where(Membership.user_id == current_user.id)
+                ),
+                Membership.user_id != current_user.id  # Exclusief huidige gebruiker
+            )
+        ).all()
+
+        # Maak een lijst van familieleden met gebruikersnaam en e-mail
+        family_members = [
+            {'username': member.username, 'email': member.email}
+            for member in members
+        ]
+        logger.debug(f"Ophalen familieleden: {len(family_members)} leden gevonden")
+        return jsonify(family_members)
+    except Exception as e:
+        logger.error(f"Fout bij ophalen familieleden: {e}")
         return jsonify({'error': str(e)}), 500
 
 @bp.route('/oauth2callback')

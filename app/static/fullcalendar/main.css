@@ -667,7 +667,7 @@ a.fc-event:hover {
 
 .fc .fc-daygrid-day-frame {
     position: relative;
-    height: 100px; /* Fixed height to enforce uniform cell size */
+    height: 120px;
 }
 
 .fc .fc-daygrid-day-top {
@@ -687,8 +687,28 @@ a.fc-event:hover {
 
 .fc .fc-daygrid-day-events {
     margin-top: 0.5px; /* Reduced to fit more content */
-    max-height: 80px; /* Limit height to fit within 100px cell, accounting for padding */
-    overflow: hidden; /* Hide overflow if too much content */
+    max-height: 100px; /* Limit height to fit within 100px cell, accounting for padding */
+    overflow-y: auto; /* Voeg scrollbar toe voor overflow */
+}
+
+.fc .fc-timegrid-event .fc-event-main {
+    padding: 2px 3px; /* Aanpassen voor betere leesbaarheid */
+}
+
+.fc .fc-timegrid-event .fc-event-title {
+    color: var(--fc-event-text-color, #fff); /* Zorg dat titel altijd wit is */
+    max-height: none; /* Verwijder hoogtebeperking */
+    overflow: visible; /* Laat titel volledig zien */
+}
+
+.fc .fc-timegrid-event {
+    font-size: 0.9em; /* Iets grotere font-size */
+    border-radius: 3px;
+    margin-bottom: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal; /* Sta toe dat tekst over meerdere regels loopt */
+    padding: 3px 5px; /* Meer padding */
 }
 
 .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
@@ -746,18 +766,19 @@ a.fc-event:hover {
     z-index: 6;
     margin-top: 1px;
     position: relative;
-    display: flex; /* Restore flex to keep time and title side by side */
-    align-items: center; /* Vertically center content */
-    white-space: nowrap; /* Keep on single line */
+    display: flex;
+    align-items: center;
     border-radius: 3px;
-    font-size: 0.75em; /* Reduced font size to fit better */
-    padding: 2px; /* Reduced padding to save space */
-    width: 100%; /* Ensure event takes full width of its container */
-    height: auto; /* Allow height to adjust to content */
-    max-height: 20px; /* Limit height to single line, adjust as needed */
-    box-sizing: border-box; /* Include padding in width/height calculations */
-    overflow: hidden; /* Ensure text doesn't overflow */
-    text-overflow: ellipsis; /* Truncate with ellipsis if too long */
+    font-size: 0.85em; /* Iets grotere font-size voor leesbaarheid */
+    padding: 3px 5px; /* Meer padding voor ruimte */
+    width: 100%;
+    height: auto; /* Laat hoogte aanpassen aan inhoud */
+    max-height: none; /* Verwijder max-height beperking */
+    box-sizing: border-box;
+    overflow: hidden; /* Behoud overflow voor lange titels */
+    text-overflow: ellipsis; /* Behoud ellipsis voor extreem lange titels */
+    white-space: normal; /* Sta toe dat tekst over meerdere regels loopt */
+    line-height: 1.2; /* Verbeter leesbaarheid */
 }
 
 .fc .fc-daygrid-event.fc-event-mirror {
@@ -781,10 +802,15 @@ a.fc-event:hover {
     display: table;
 }
 
+/* Zorg dat de more-link leesbaar blijft */
 .fc .fc-daygrid-more-link {
     position: relative;
     z-index: 4;
     cursor: pointer;
+    font-size: 0.85em;
+    padding: 2px 5px;
+    background: var(--fc-more-link-bg-color, #d0d0d0);
+    color: var(--fc-more-link-text-color, inherit);
 }
 
 .fc .fc-daygrid-week-number {
@@ -1153,6 +1179,10 @@ a.fc-event:hover {
 .fc-timegrid-event-short .fc-event-main-frame {
     flex-direction: row;
     overflow: hidden;
+}
+
+.fc-event-title{
+    color: white;
 }
 
 .fc-timegrid-event-short .fc-event-time:after {
