@@ -4,7 +4,8 @@ from config import Config
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 import logging
-from logging.handlers import RotatingFileHandler
+from logging.handlers import SMTPHandler, RotatingFileHandler
+from flask_mail import Mail
 from flask_moment import Moment
 from dotenv import load_dotenv
 from authlib.integrations.flask_client import OAuth
@@ -12,11 +13,11 @@ from authlib.integrations.flask_client import OAuth
 # Initialiseer Flask-extensies
 db = SQLAlchemy()
 migrate = Migrate()
+mail = Mail()
 moment = Moment()
 oauth = OAuth()
 
 load_dotenv()  # Laad omgevingsvariabelen uit .env bestand
-
 
 def create_app():
     app = Flask(__name__, static_folder='static')
@@ -26,6 +27,7 @@ def create_app():
     # Initialiseer extensies met app
     db.init_app(app)
     migrate.init_app(app, db)
+    mail.init_app(app)
     moment.init_app(app)
     oauth.init_app(app)
 
@@ -40,6 +42,22 @@ def create_app():
 
     # Configureer logging (alleen in productie)
     if not app.debug:
+        # Email-logging voor errors
+        if app.config['MAIL_SERVER']:
+            auth = None
+            if app.config['MAIL_USERNAME'] or app.config['MAIL_PASSWORD']:
+                auth = (app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+            secure = None
+            if app.config['MAIL_USE_TLS']:
+                secure = ()
+            mail_handler = SMTPHandler(
+                mailhost=(app.config['MAIL_SERVER'], app.config['MAIL_PORT']),
+                fromaddr='no-reply@' + app.config['MAIL_SERVER'],
+                toaddrs=app.config['ADMINS'], subject='famplan Failure',
+                credentials=auth, secure=secure)
+            mail_handler.setLevel(logging.ERROR)
+            app.logger.addHandler(mail_handler)
+
         # File-logging voor alle events
         if not os.path.exists('logs'):
             os.mkdir('logs')
