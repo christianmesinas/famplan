@@ -17,9 +17,6 @@ oauth = OAuth()
 
 load_dotenv()  # Laad omgevingsvariabelen uit .env bestand
 
-instance_path = os.path.join(os.path.dirname(__file__), 'instance')
-if not os.path.exists(instance_path):
-    os.makedirs(instance_path)
 
 def create_app():
     app = Flask(__name__, static_folder='static')

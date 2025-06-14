@@ -325,7 +325,7 @@ def register_routes(app):
     @app.route('/explore')
     def explore():
         if 'user' not in session:
-            return redirect(url_for('login'))
+            return redirect(url_for('auth_login'))
         page = request.args.get('page', 1, type=int)
         query = sa.select(Post).order_by(Post.timestamp.desc())
         posts = db.paginate(

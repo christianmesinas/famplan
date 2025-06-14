@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   app:
     build:
@@ -11,13 +9,24 @@ services:
       - .env
     volumes:
       - ./instance:/app/instance
-      - .:/app
+    working_dir: /app
     environment:
       - FLASK_APP=famplan.py
       - FLASK_ENV=development
-      - DATABASE_URL=sqlite:///app.db
+      - PYTHONUNBUFFERED=1
     command: >
-      sh -c "flask db upgrade && flask run --host=0.0.0.0 --port=5000"
-
-volumes:
-  app-data:
+      sh -c "
+      echo '=== Database Setup ===' &&
+      mkdir -p /app/instance &&
+      echo 'Checking migrations...' &&
+      ls -la migrations/versions/ &&
+      echo 'Creating initial migration...' &&
+      flask db migrate -m 'Initial Docker migration' &&
+      echo 'Migration created! Contents:' &&
+      ls -la migrations/versions/ &&
+      echo 'Running database upgrade...' &&
+      flask db upgrade &&
+      echo 'Database setup complete!' &&
+      echo '=== Starting Flask ===' &&
+      flask run --host=0.0.0.0 --port=5000
+      "
