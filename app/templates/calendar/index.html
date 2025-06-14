@@ -5,7 +5,16 @@
     <div class="row">
         <div class="col-md-12">
             <h1>Family Calendar</h1>
-            <div class="d-flex justify-content-end mb-3">
+            <div class="d-flex justify-content-between mb-3">
+                <div>
+                    <label for="family-select" class="form-label">Selecteer Familie:</label>
+                    <select id="family-select" class="form-select" style="width: auto; display: inline-block;">
+                        <option value="">Alle Families</option>
+                        {% for family in current_user.families %}
+                            <option value="{{ family.id }}">{{ family.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <button class="btn btn-primary" id="create-event-btn">
                     <i class="fa fa-plus me-1"></i> Create Event
                 </button>
@@ -69,12 +78,22 @@
 {% endblock %}
 
 {% block scripts %}
+<!-- Load FullCalendar and dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
 <!-- Load calendar.js -->
 <script src="{{ url_for('static', filename='fullcalendar/calendar.js') }}"></script>
 <script>
-console.log('Events URL:', document.getElementById('calendar').dataset.eventsUrl);
-console.log('Create Event URL:', document.getElementById('calendar').dataset.eventUrl);
-console.log('Update Event URL:', document.getElementById('calendar').dataset.updateUrl);
-console.log('Delete Event URL:', document.getElementById('calendar').dataset.deleteUrl);
+    // Initialisatie van de kalender met familie-selectie
+    document.addEventListener('DOMContentLoaded', function() {
+        const familySelect = document.getElementById('family-select');
+        familySelect.addEventListener('change', function() {
+            // Herlaad de kalender met de geselecteerde familie
+            const calendarEl = document.getElementById('calendar');
+            const baseEventsUrl = calendarEl.dataset.eventsUrl;
+            const eventsUrl = this.value ? `${baseEventsUrl}?family_id=${this.value}` : baseEventsUrl;
+            // Trigger een herlaad van evenementen (veronderstelt dat calendar.js een refresh-functie heeft)
+            window.refreshCalendar(eventsUrl);
+        });
+    });
 </script>
 {% endblock %}

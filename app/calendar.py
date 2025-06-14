@@ -198,39 +198,99 @@ def events():
 
     return jsonify(formatted_events)
 
-@bp.route('/calendar/event', methods=['POST'])
-@calendar_auth_required  # Vereist dat de gebruiker is ingelogd en referenties heeft
-def create_event():
-    #Maak een nieuw evenement aan in de Google Calendar van de gebruiker.
+
+@bp.route('/calendar/events')
+@calendar_auth_required
+def events():
     current_user = get_current_user()
     creds = get_calendar_credentials(current_user.id)
     creds_dict = credentials_to_dict(creds)
+    if not creds_dict:
+        return redirect(url_for('calendar.authorize'))
 
-    data = request.json
     service = GoogleCalendarService.get_calendar_service(creds_dict)
+    start_date = request.args.get('start')
+    end_date = request.args.get('end')
+    family_id = request.args.get('family_id')  # Optionele parameter voor specifieke familie
 
-    # Datums omzetten
-    start_datetime = datetime.fromisoformat(data['start'].replace('Z', '+00:00'))
-    end_datetime = datetime.fromisoformat(data['end'].replace('Z', '+00:00'))
+    if start_date:
+        start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+    else:
+        start_date = datetime.utcnow()
+    if end_date:
+        end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+    else:
+        end_date = start_date + timedelta(days=30)
 
-    # Maak een nieuw evenement aan in de Google Calendar
-    event = GoogleCalendarService.create_event(
+    # Haal evenementen van de huidige gebruiker op
+    user_events = GoogleCalendarService.get_events(
         service,
-        summary=data['title'],
-        start_datetime=start_datetime,
-        end_datetime=end_datetime,
-        description=data.get('description', ''),
-        location=data.get('location', ''),
-        attendees=data.get('attendees', [])
+        time_min=start_date,
+        time_max=end_date,
+        max_results=100
     )
 
-    # Retourneer het aangemaakte evenement in JSON-formaat
-    return jsonify({
-        'id': event['id'],
-        'title': event['summary'],
-        'start': event['start']['dateTime'],
-        'end': event['end']['dateTime']
-    })
+    # Haal familieleden op uit de geselecteerde familie(s)
+    family_events = []
+    query = sa.select(Family).join(Membership).where(Membership.user_id == current_user.id)
+    if family_id:
+        query = query.where(Family.id == int(family_id))
+
+    families = db.session.scalars(query).all()
+
+    for family in families:
+        # Haal alle leden van de familie op (exclusief de huidige gebruiker)
+        members = db.session.scalars(
+            sa.select(User)
+            .join(Membership)
+            .where(Membership.family_id == family.id, Membership.user_id != current_user.id)
+        ).all()
+
+        for member in members:
+            member_creds = db.session.scalar(
+                sa.select(CalendarCredentials).where(CalendarCredentials.user_id == member.id)
+            )
+            if member_creds:
+                member_creds_dict = credentials_to_dict(member_creds)
+                if member_creds_dict:
+                    try:
+                        member_service = GoogleCalendarService.get_calendar_service(member_creds_dict)
+                        events = GoogleCalendarService.get_events(
+                            member_service,
+                            time_min=start_date,
+                            time_max=end_date,
+                            max_results=100
+                        )
+                        # Voeg metadata toe om de gebruiker en familie te identificeren
+                        for event in events:
+                            event['family_member_name'] = member.username
+                            event['family_name'] = family.name
+                            family_events.append(event)
+                    except Exception as e:
+                        current_app.logger.error(
+                            f"Fout bij ophalen evenementen voor familielid {member.username} in familie {family.name}: {e}")
+                        continue
+
+    # Combineer en formatteer evenementen
+    all_events = user_events + family_events
+    formatted_events = []
+    for event in all_events:
+        start = event['start'].get('dateTime', event['start'].get('date'))
+        end = event['end'].get('dateTime', event['end'].get('date'))
+        formatted_events.append({
+            'id': event['id'],
+            'title': f"{event.get('family_member_name', current_user.username)} ({event.get('family_name', 'Eigen')}): {event['summary']}",
+            'start': start,
+            'end': end,
+            'description': event.get('description', ''),
+            'location': event.get('location', ''),
+            'family_member_name': event.get('family_member_name', None),
+            'family_name': event.get('family_name', None),
+            'color': '#ff0000' if event.get('family_member_name') else '#3788d8'
+            # Voorbeeld: andere kleur voor familieleden
+        })
+
+    return jsonify(formatted_events)
 
 @bp.route('/calendar/event/<event_id>', methods=['PUT'])
 @calendar_auth_required  # Vereist dat de gebruiker is ingelogd en referenties heeft
@@ -287,7 +347,6 @@ def delete_event(event_id):
     current_user = get_current_user()
     creds = get_calendar_credentials(current_user.id)
     creds_dict = credentials_to_dict(creds)
-
     service = GoogleCalendarService.get_calendar_service(creds_dict)
     GoogleCalendarService.delete_event(service, 'primary', event_id)
 
