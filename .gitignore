@@ -56,7 +56,3 @@ pytest_cache/
 *.pid
 
 #migrations
-Migrations/
-.Migrations/
-migrations/
-.migrations/
