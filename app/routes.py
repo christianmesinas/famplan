@@ -198,6 +198,38 @@ def register_routes(app):
         return render_template('join_family.html', form=form, invite=invite)
 
     # ------------------------------------------------------------------
+    # 4) LEAVE A FAMILY GROUP
+    # ------------------------------------------------------------------
+    @app.route('/family/<int:family_id>/leave', methods=['POST'])
+    def leave_family(family_id):
+        # Only logged-in users may leave
+        current_user = get_current_user()
+        if not current_user:
+            flash('Please log in first.', 'warning')
+            return redirect(url_for('login'))
+
+        form = EmptyForm()
+        if form.validate_on_submit():
+            # Find their membership (if any)
+            membership = db.session.scalar(
+                sa.select(Membership)
+                  .where(
+                      Membership.user_id   == current_user.id,
+                      Membership.family_id == family_id
+                  )
+            )
+            if membership:
+                db.session.delete(membership)
+                db.session.commit()
+                flash('You have left the family.', 'success')
+            else:
+                flash('You are not a member of that family.', 'warning')
+
+        # Go back to the profile page (or wherever you like)
+        return redirect(url_for('user', username=current_user.username))
+
+
+    # ------------------------------------------------------------------
     # Auth0 callback
     # ------------------------------------------------------------------
     @app.route('/callback')

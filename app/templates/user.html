@@ -50,25 +50,37 @@
     <hr>
     <h2>Families</h2>
     {% if user.families %}
-        <ul class="list-group mb-4">
-            {% for fam in user.families %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {# Link to invite-management page for that family #}
-                    <a href="{{ url_for('invite_family', family_id=fam.id) }}">
-                        {{ fam.name }}
-                    </a>
-                    {# Show how many members this family has #}
-                    <span class="badge bg-secondary rounded-pill">
-                        {{ fam.memberships|length }}
-                    </span>
-                </li>
-            {% endfor %}
-        </ul>
+      <ul class="list-group mb-4">
+        {% for fam in user.families %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <a href="{{ url_for('invite_family', family_id=fam.id) }}">{{ fam.name }}</a>
+              <span class="badge bg-secondary rounded-pill">{{ fam.memberships|length }}</span>
+            </div>
+
+            {# Only show leave‐button when viewing YOUR own profile #}
+            {# Added a pop-up that asks if you're sure about leaving. #}
+            {% if user == current_user %}
+              <form
+                action="{{ url_for('leave_family', family_id=fam.id) }}"
+                method="post"
+                class="ms-3 leave-family-form"
+                onsubmit="return confirm('You are about to leave the family “{{ fam.name }}”.\\nAre you sure?');"
+              >
+                {{ form.hidden_tag() }}
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                  Leave
+                </button>
+              </form>
+            {% endif %}
+
+          </li>
+        {% endfor %}
+      </ul>
     {% else %}
-        <p class="text-muted">
-            This user is not a member of any family yet.
-        </p>
+      <p class="text-muted">This user is not a member of any family yet.</p>
     {% endif %}
+
 
     {# Existing posts loop #}
     {% for post in posts %}
