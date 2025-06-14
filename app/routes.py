@@ -14,6 +14,9 @@ import logging
 from datetime import datetime, timezone, timedelta
 from requests.exceptions import HTTPError
 
+from flask_mail import Message
+from app import mail
+
 # Configureer logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -112,6 +115,24 @@ def register_routes(app):
             db.session.add(invite)
             db.session.commit()
             flash('Invite created! Share the link below.', 'info')
+            # stuur een email met de token
+            if form.invited_email.data:
+                join_url = url_for('join_family', token=invite.token, _external=True)
+                msg = Message(
+                    subject=f"FamPlan: Invite to join “{fam.name}”",
+                    recipients=[invite.invited_email],
+                    body=render_template(
+                        'email/family_invite.txt',
+                        family=fam,
+                        join_url=join_url,
+                        expires_at=invite.expires_at
+                    )
+                )
+                mail.send(msg)
+                flash(f'Invite sent to {invite.invited_email}', 'success')
+
+            else:
+                flash('Invite created! No email address provided so no message sent.', 'info')
 
         # Toon de meest recente invite
         latest = (
@@ -196,6 +217,38 @@ def register_routes(app):
             return redirect(url_for('calendar.index'))
 
         return render_template('join_family.html', form=form, invite=invite)
+
+    # ------------------------------------------------------------------
+    # 4) LEAVE A FAMILY GROUP
+    # ------------------------------------------------------------------
+    @app.route('/family/<int:family_id>/leave', methods=['POST'])
+    def leave_family(family_id):
+        # Only logged-in users may leave
+        current_user = get_current_user()
+        if not current_user:
+            flash('Please log in first.', 'warning')
+            return redirect(url_for('login'))
+
+        form = EmptyForm()
+        if form.validate_on_submit():
+            # Find their membership (if any)
+            membership = db.session.scalar(
+                sa.select(Membership)
+                  .where(
+                      Membership.user_id   == current_user.id,
+                      Membership.family_id == family_id
+                  )
+            )
+            if membership:
+                db.session.delete(membership)
+                db.session.commit()
+                flash('You have left the family.', 'success')
+            else:
+                flash('You are not a member of that family.', 'warning')
+
+        # Go back to the profile page (or wherever you like)
+        return redirect(url_for('user', username=current_user.username))
+
 
     # ------------------------------------------------------------------
     # Auth0 callback
