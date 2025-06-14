@@ -1,5 +1,6 @@
 import secrets
 from flask import session, render_template, flash, redirect, url_for, request, jsonify, abort
+from urllib.parse import urlparse, urljoin
 import sqlalchemy as sa
 from app import db, oauth
 from app.forms import (
@@ -162,6 +163,8 @@ def register_routes(app):
         # Ensure the user is logged in
         current_user = get_current_user()
         if not current_user:
+            # Remember where we were trying to go
+            session['after_login'] = request.url
             flash('Please log in to join a family.', 'warning')
             return redirect(url_for('auth_login'))
 
@@ -305,8 +308,26 @@ def register_routes(app):
                     user.email = email
                     db.session.commit()
 
+            # After successful login and user creation/update:
             session.pop('auth0_state', None)
+
+            # Pull and clear the “after_login” URL
+            next_url = session.pop('after_login', None)
+
+            # Only allow safe redirects to the same host
+            def is_safe_url(target):
+                host_url = urlparse(request.host_url)
+                target_url = urlparse(urljoin(request.host_url, target))
+                return (
+                        target_url.scheme in ('http', 'https') and
+                        host_url.netloc == target_url.netloc
+                )
+
+            if next_url and is_safe_url(next_url):
+                return redirect(next_url)
+
             return redirect(url_for('index'))
+
 
         except HTTPError as e:
             session.clear()
