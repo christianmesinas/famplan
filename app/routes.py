@@ -15,7 +15,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from requests.exceptions import HTTPError
 
-from flask_mail import Message
+from flask_mail import Message as MailMessage
 from app import mail
 
 # Configureer logging
@@ -119,7 +119,7 @@ def register_routes(app):
             # stuur een email met de token
             if form.invited_email.data:
                 join_url = url_for('join_family', token=invite.token, _external=True)
-                msg = Message(
+                msg = MailMessage(
                     subject=f"FamPlan: Invite to join “{fam.name}”",
                     recipients=[invite.invited_email],
                     body=render_template(
