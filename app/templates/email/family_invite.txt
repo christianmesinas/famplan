@@ -1,0 +1,12 @@
+Hello,
+
+You’ve been invited to join the FamPlan family “{{ family.name }}”.
+
+Click here to join:
+{{ join_url }}
+
+This link expires on {{ expires_at.strftime('%Y-%m-%d %H:%M UTC') }}.
+
+If you did not expect this, you can ignore this email.
+
+— FamPlan

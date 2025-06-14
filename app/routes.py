@@ -14,6 +14,9 @@ import logging
 from datetime import datetime, timezone, timedelta
 from requests.exceptions import HTTPError
 
+from flask_mail import Message
+from app import mail
+
 # Configureer logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -112,6 +115,24 @@ def register_routes(app):
             db.session.add(invite)
             db.session.commit()
             flash('Invite created! Share the link below.', 'info')
+            # stuur een email met de token
+            if form.invited_email.data:
+                join_url = url_for('join_family', token=invite.token, _external=True)
+                msg = Message(
+                    subject=f"FamPlan: Invite to join “{fam.name}”",
+                    recipients=[invite.invited_email],
+                    body=render_template(
+                        'email/family_invite.txt',
+                        family=fam,
+                        join_url=join_url,
+                        expires_at=invite.expires_at
+                    )
+                )
+                mail.send(msg)
+                flash(f'Invite sent to {invite.invited_email}', 'success')
+
+            else:
+                flash('Invite created! No email address provided so no message sent.', 'info')
 
         # Toon de meest recente invite
         latest = (

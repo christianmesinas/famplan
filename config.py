@@ -11,13 +11,16 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
                               'sqlite:///' + os.path.join(basedir, 'app.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    MAIL_SERVER = os.getenv('MAIL_SERVER')
-    MAIL_PORT =int(os.getenv('MAIL_PORT'))
-    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS') == 'True'
+
+    # Flask-Mail
+    MAIL_SERVER = os.getenv('MAIL_SERVER', 'localhost')
+    MAIL_PORT = int(os.getenv('MAIL_PORT', 25))
+    MAIL_USE_TLS = os.getenv('MAIL_USE_TLS', 'false').lower() in ['true', '1', 't']
+    MAIL_USE_SSL = os.getenv('MAIL_USE_SSL', 'false').lower() in ['true', '1', 't']
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
-    ADMINS = ['chris1991.cg@gmail.com']
     MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER')
+
     POSTS_PER_PAGE = 25
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
