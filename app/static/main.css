@@ -17,9 +17,10 @@
 }
 
 .nav-link{
+    width: fit-content;
     color: white;
     font-weight: bolder;
-    margin: 16px;
+    margin: 5px;
 }
 
 #logo_id{
@@ -163,4 +164,39 @@ a{
 .modal-title{
     background: linear-gradient(rgba(255,94,0,1), rgba(207,0,0,1));
     color: white;
+}
+
+.btn-primary {
+    background: linear-gradient(rgba(255, 94, 0, 1), rgba(207, 0, 0, 1));
+    padding: 1rem;
+    border: none;
+    color: white;
+    font-weight: bolder;
+}
+
+.justify-content-sb{
+    justify-content: space-between;
+}
+
+.mb-3{
+    margin-top: 1rem;
+    margin-bottom: 2rem !important;
+}
+
+.fc .fc-col-header-cell-cushion {
+    color: rgba(228, 15, 15, 1);
+    font-size: 20px;
+}
+
+h1{
+    font-weight: bolder;
+}
+
+h2{
+    font-weight: bolder;
+}
+
+a {
+    color: rgba(255, 94, 0, 1);
+    font-weight: bold;
 }
