@@ -692,23 +692,38 @@ a.fc-event:hover {
 }
 
 .fc .fc-timegrid-event .fc-event-main {
-    padding: 2px 3px; /* Aanpassen voor betere leesbaarheid */
+    padding: 2px 3px;
+    overflow: visible;
+    white-space: normal;
 }
 
 .fc .fc-timegrid-event .fc-event-title {
-    color: var(--fc-event-text-color, #fff); /* Zorg dat titel altijd wit is */
-    max-height: none; /* Verwijder hoogtebeperking */
-    overflow: visible; /* Laat titel volledig zien */
+    max-height: none; /* Geen hoogtebeperking */
+    overflow: visible; /* Laat alle tekst zien */
+    text-overflow: clip; /* Geen ellipsis */
+    white-space: normal; /* Laat tekst over meerdere regels lopen */
+    font-size: inherit; /* Overneem grootte van parent */
 }
 
+.fc .fc-timegrid-col {
+    min-width: 100px; /* Voorkom te smalle kolommen in weekweergave */
+}
+
+.fc .fc-timegrid-slot-label {
+    font-size: 0.9em;
+    padding: 2px;
+}
+
+
 .fc .fc-timegrid-event {
-    font-size: 0.9em; /* Iets grotere font-size */
+    z-index: 6;
+    position: relative;
     border-radius: 3px;
-    margin-bottom: 1px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: normal; /* Sta toe dat tekst over meerdere regels loopt */
+    font-size: 0.9em; /* Iets grotere tekst voor leesbaarheid */
     padding: 3px 5px; /* Meer padding */
+    overflow: visible; /* Laat inhoud buiten de container zien */
+    white-space: normal; /* Laat tekst over meerdere regels lopen */
+    line-height: 1.2; /* Verbeter leesbaarheid */
 }
 
 .fc .fc-daygrid-body-balanced .fc-daygrid-day-events {
@@ -769,16 +784,16 @@ a.fc-event:hover {
     display: flex;
     align-items: center;
     border-radius: 3px;
-    font-size: 0.85em; /* Iets grotere font-size voor leesbaarheid */
-    padding: 3px 5px; /* Meer padding voor ruimte */
+    font-size: 0.85em;
+    padding: 3px 5px;
     width: 100%;
-    height: auto; /* Laat hoogte aanpassen aan inhoud */
-    max-height: none; /* Verwijder max-height beperking */
+    height: auto;
+    max-height: none; /* Geen hoogtebeperking */
     box-sizing: border-box;
-    overflow: hidden; /* Behoud overflow voor lange titels */
-    text-overflow: ellipsis; /* Behoud ellipsis voor extreem lange titels */
-    white-space: normal; /* Sta toe dat tekst over meerdere regels loopt */
-    line-height: 1.2; /* Verbeter leesbaarheid */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal; /* Laat tekst over meerdere regels lopen */
+    line-height: 1.2;
 }
 
 .fc .fc-daygrid-event.fc-event-mirror {
@@ -811,6 +826,10 @@ a.fc-event:hover {
     padding: 2px 5px;
     background: var(--fc-more-link-bg-color, #d0d0d0);
     color: var(--fc-more-link-text-color, inherit);
+}
+
+.fc-timegrid-event{
+    width: 100%;
 }
 
 .fc .fc-daygrid-week-number {
