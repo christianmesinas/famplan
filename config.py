@@ -8,7 +8,8 @@ if ENV_FILE:
 
 class Config:
     SECRET_KEY = os.getenv('APP_SECRET_KEY')
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(basedir, 'instance', 'app.db')}"
+    # SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(basedir, 'instance', 'app.db')}"
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     print(f"Config SQLALCHEMY_DATABASE_URI: {SQLALCHEMY_DATABASE_URI}")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
