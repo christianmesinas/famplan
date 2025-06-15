@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Create Family{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='family.css') }}">
+{% endblock %}
+
 {% block content %}
   <h1>Create a new Family</h1>
   <form method="post">

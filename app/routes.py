@@ -252,6 +252,29 @@ def register_routes(app):
         # Go back to the profile page (or wherever you like)
         return redirect(url_for('user', username=current_user.username))
 
+    # ------------------------------------------------------------------
+    # 5) EDIT A POST
+    # ------------------------------------------------------------------
+
+    @app.route('/post/<int:post_id>/edit', methods=['POST'])
+    def edit_post(post_id):
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'error': 'Not logged in'}), 403
+
+        post = db.session.get(Post, post_id)
+        if post is None or post.author != current_user:
+            return jsonify({'error': 'Post not found or unauthorized'}), 404
+
+        data = request.get_json()
+        new_body = data.get('body')
+        if not new_body:
+            return jsonify({'error': 'Empty post'}), 400
+
+        post.body = new_body
+        db.session.commit()
+        return jsonify({'message': 'Post updated', 'new_body': post.body})
+
 
     # ------------------------------------------------------------------
     # Auth0 callback

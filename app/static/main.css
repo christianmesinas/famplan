@@ -168,7 +168,7 @@ a{
 
 .btn-primary {
     background: linear-gradient(rgba(255, 94, 0, 1), rgba(207, 0, 0, 1));
-    padding: 1rem;
+    padding: 1rem 2rem;
     border: none;
     color: white;
     font-weight: bolder;
@@ -200,4 +200,14 @@ h2{
 a {
     color: rgba(255, 94, 0, 1);
     font-weight: bold;
+    width: fit-content;
+}
+
+.form-label{
+    font-weight: bold;
+}
+
+.page-link{
+    width: fit-content;
+    height: 3rem;
 }

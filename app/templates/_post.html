@@ -6,6 +6,7 @@
             </a>
         </td>
         <td>
+            <!-- dit is de naam van het account -->
             {% set user_link %}
             <a class="user_popup"
             href="{{ url_for('user', username=post.author.username) }}">
@@ -13,8 +14,65 @@
             </a>
             {% endset %}
             {{ user_link }} said {{ moment(post.timestamp).fromNow() }}
+            {% if get_current_user() and get_current_user().id == post.author.id %}
+                <a href="#" onclick="editPost({{ post.id }})">Edit</a>
+            {% endif %}
             <br>
             <span id="post{{ post.id }}">{{ post.body }}</span>
         </td>
     </tr>
 </table>
+
+<script>
+function editPost(postId) {
+    const postSpan = document.getElementById('post' + postId);
+    const originalText = postSpan.innerText;
+
+    const textarea = document.createElement('textarea');
+    textarea.value = originalText;
+    textarea.className = 'form-control';
+    textarea.rows = 3;
+
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Save';
+    saveBtn.className = 'btn btn-sm btn-success me-1';
+    saveBtn.onclick = function () {
+        fetch(`/post/${postId}/edit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ body: textarea.value })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.new_body) {
+                postSpan.innerHTML = data.new_body;
+                restore();
+            } else {
+                alert(data.error || 'Something went wrong');
+            }
+        });
+    };
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.className = 'btn btn-sm btn-secondary';
+    cancelBtn.onclick = restore;
+
+    const parent = postSpan.parentNode;
+    postSpan.style.display = 'none';
+
+    const editorDiv = document.createElement('div');
+    editorDiv.id = 'editor' + postId;
+    editorDiv.appendChild(textarea);
+    editorDiv.appendChild(saveBtn);
+    editorDiv.appendChild(cancelBtn);
+    parent.appendChild(editorDiv);
+
+    function restore() {
+        postSpan.style.display = '';
+        editorDiv.remove();
+    }
+}
+</script>
