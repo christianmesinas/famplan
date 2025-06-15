@@ -426,22 +426,39 @@ def register_routes(app):
             return render_template('landings.html')
         user = get_current_user()
         form = PostForm()
+        # Toont families van de user in dropdown
+        families = user.families
+        form.family.choices = [(-1, 'Alleen ik')] + [(f.id, f.name) for f in families]
         if form.validate_on_submit():
-            post = Post(body=form.post.data, author=user)
+            selected_family_id = form.family.data
+            family = None if selected_family_id == -1 else db.session.get(Family, selected_family_id)
+
+            post = Post(body=form.post.data, author=user, family=family)
             db.session.add(post)
             db.session.commit()
             flash('Your post is now live!')
             return redirect(url_for('index'))
+        family_id = request.args.get('family_id', type=int)
         page = request.args.get('page', 1, type=int)
+        if family_id:
+            posts_query = Post.query.filter_by(family_id=family_id)
+        else:
+            posts_query = user.following_posts()
         posts = db.paginate(
-            user.following_posts(), page=page,
+            posts_query, page=page,
             per_page=app.config['POSTS_PER_PAGE'], error_out=False
         )
         next_url = url_for('index', page=posts.next_num) if posts.has_next else None
         prev_url = url_for('index', page=posts.prev_num) if posts.has_prev else None
         return render_template(
-            'index.html', title='Home', form=form,
-            posts=posts.items, next_url=next_url, prev_url=prev_url
+            'index.html',
+            title='Home',
+            form=form,
+            posts=posts.items,
+            families=families,
+            selected_family_id=family_id,
+            next_url=next_url,
+            prev_url=prev_url
         )
 
     @app.route('/explore')

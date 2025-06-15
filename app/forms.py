@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField
+from wtforms import StringField, SubmitField, TextAreaField, SelectField
 from wtforms.validators import ValidationError, DataRequired, Length
 import sqlalchemy as sa
 from app import db
@@ -33,12 +33,14 @@ class EmptyForm(FlaskForm):
 class PostForm(FlaskForm):
     post = TextAreaField('Say something', validators=[
         DataRequired(), Length(min=1, max=140)])
+    family = SelectField('Post to Family', coerce=int)
     submit = SubmitField('Submit')
 
 # Formulier om een privébericht te sturen
 class MessageForm(FlaskForm):
     message = TextAreaField('Message', validators=[
         DataRequired(), Length(min=1, max=140)])
+    family = SelectField('Post to Family', coerce=int)
     submit = SubmitField('Submit')
 
 # -----------------------------------------------

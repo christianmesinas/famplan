@@ -10,6 +10,22 @@
     {% for post in posts %}
         {% include '_post.html' %}
     {% endfor %}
+
+<form method="get" action="{{ url_for('index') }}">
+    <div class="form-group">
+        <label for="familyFilter">Filter posts by family:</label>
+        <select class="form-control" id="familyFilter" name="family_id" onchange="this.form.submit()">
+            <option value="">-- All Families --</option>
+            {% for family in families %}
+                <option value="{{ family.id }}"
+                    {% if selected_family_id == family.id %}selected{% endif %}>
+                    {{ family.name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+</form>
+
     <nav aria-label="Post navigation">
         <ul class="pagination">
             <li class="page-item{% if not prev_url %} disabled{% endif %}">

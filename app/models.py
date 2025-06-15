@@ -330,6 +330,12 @@ class Post(db.Model):
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
     author: so.Mapped[User] = so.relationship(back_populates='posts')
 
+    # maakt mogelijk om familie-gebonden posts te maken
+    family_id: so.Mapped[Optional[int]] = so.mapped_column(
+        sa.ForeignKey('family.id'), nullable=True, index=True
+    )
+    family: so.Mapped[Optional['Family']] = so.relationship('Family', backref='posts')
+
     def __repr__(self):
         return f'<Post {self.body}>'
 
