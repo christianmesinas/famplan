@@ -1,3 +1,9 @@
+// Read the logged-in user’s ID from the meta tag (or null if not present)
+const userIdMeta = document.querySelector('meta[name="current-user-id"]');
+window.CURRENT_USER_ID = userIdMeta && userIdMeta.content
+  ? Number(userIdMeta.content)
+  : null;
+
 let calendar;
 
 function initializeCalendar() {
