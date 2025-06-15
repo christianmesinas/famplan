@@ -75,6 +75,14 @@ def register_routes(app):
             flash('Please log in to create a family.', 'warning')
             return redirect(url_for('login'))
 
+        # Geeft families waar de gebruiker in zit
+        families = (
+            db.session.query(Family)
+            .join(Membership)
+            .filter(Membership.user_id == current_user.id)
+            .all()
+        )
+
         form = FamilyForm()
         if form.validate_on_submit():
             # Maak nieuwe Family en voeg creator toe als lid
@@ -88,7 +96,7 @@ def register_routes(app):
             flash(f'Family "{fam.name}" created!', 'success')
             return redirect(url_for('invite_family', family_id=fam.id))
 
-        return render_template('create_family.html', form=form)
+        return render_template('create_family.html', form=form, families=families)
 
     # ------------------------------------------------------------------
     # 2) GENERATE AN INVITE
