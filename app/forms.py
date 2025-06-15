@@ -40,7 +40,6 @@ class PostForm(FlaskForm):
 class MessageForm(FlaskForm):
     message = TextAreaField('Message', validators=[
         DataRequired(), Length(min=1, max=140)])
-    family = SelectField('Post to Family', coerce=int)
     submit = SubmitField('Submit')
 
 # -----------------------------------------------
