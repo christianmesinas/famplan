@@ -1,11 +1,13 @@
 <table class="table table-hover">
-    <tr>
+    <tr id="post-row-{{ post.id }}">
         <td width="70px">
             <a href="{{ url_for('user', username=post.author.username) }}">
                 <img src="{{ post.author.avatar(70) }}" />
             </a>
         </td>
         <td>
+            <div class="post-text-contrainer">
+            <div>
             <!-- dit is de naam van het account -->
             {% set user_link %}
             <a class="user_popup"
@@ -14,9 +16,14 @@
             </a>
             {% endset %}
             {{ user_link }} said {{ moment(post.timestamp).fromNow() }}
+            </div>
+            <div class="edit-delete-wrapper">
             {% if get_current_user() and get_current_user().id == post.author.id %}
                 <a href="#" onclick="editPost({{ post.id }})">Edit</a>
+                <a href="#" onclick="deletePost({{ post.id }})">Delete</a>
             {% endif %}
+            </div>
+            </div>
             <br>
             <span id="post{{ post.id }}">{{ post.body }}</span>
         </td>
@@ -74,5 +81,30 @@ function editPost(postId) {
         postSpan.style.display = '';
         editorDiv.remove();
     }
+}
+
+function deletePost(postId) {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+
+    fetch(`/post/${postId}/delete`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            // Verwijder de post uit de DOM
+            const postRow = document.getElementById('post-row-' + postId);
+            if (postRow) postRow.remove();
+        } else {
+            return response.json().then(data => {
+                alert(data.error || "Failed to delete post");
+            });
+        }
+    })
+    .catch(error => {
+        alert("Error deleting post: " + error);
+    });
 }
 </script>

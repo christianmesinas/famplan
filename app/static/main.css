@@ -211,3 +211,23 @@ a {
     width: fit-content;
     height: 3rem;
 }
+
+/*Voor Firefox en IE*/
+.scrollbox{
+    overflow: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+/*Voor Chrome, Safari, Edge (WebKit/Blink)*/
+.scrollbox::-webkit-scrollbar {
+  display: none;
+}
+
+.post-text-contrainer{
+    display: flex;
+    justify-content: space-between;
+}
+
+.edit-delete-wrapper a{
+    margin-left: 15px;
+}

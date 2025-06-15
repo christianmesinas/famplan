@@ -275,6 +275,23 @@ def register_routes(app):
         db.session.commit()
         return jsonify({'message': 'Post updated', 'new_body': post.body})
 
+    # ------------------------------------------------------------------
+    # 6) DELETE A POST
+    # ------------------------------------------------------------------
+
+    @app.route('/post/<int:post_id>/delete', methods=['DELETE'])
+    def delete_post(post_id):
+        current_user = get_current_user()
+        if not current_user:
+            return jsonify({'error': 'Not logged in'}), 403
+
+        post = db.session.get(Post, post_id)
+        if not post or post.author != current_user:
+            return jsonify({'error': 'Unauthorized or post not found'}), 404
+
+        db.session.delete(post)
+        db.session.commit()
+        return jsonify({'message': 'Post deleted'})
 
     # ------------------------------------------------------------------
     # Auth0 callback
