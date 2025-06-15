@@ -57,25 +57,61 @@ function initializeCalendar() {
                     failureCallback(error);
                 });
         },
+       // render title on top, meta (time • user) below
+        eventContent: function(arg) {
+            let titleEl = document.createElement('div');
+            titleEl.classList.add('fc-event-title');
+            titleEl.innerText = arg.event.title;
+
+            let metaEl = document.createElement('div');
+            metaEl.classList.add('fc-event-meta');
+            const timeText = arg.timeText;
+            const isMe = arg.event.extendedProps.userId === window.CURRENT_USER_ID;
+            const userName = isMe ? '(me)' : arg.event.extendedProps.userName;
+            metaEl.innerText = `${timeText} • ${userName}`;
+
+            return { domNodes: [ titleEl, metaEl ] };
+        },
+
         editable: true,
         selectable: true,
         eventDidMount: function(info) {
-            console.log('Rendering event:', info.event);
-            if (info.event.extendedProps.family_member_name) {
-                info.el.style.backgroundColor = stringToColor(info.event.extendedProps.family_member_name);
-                info.el.style.borderColor = stringToColor(info.event.extendedProps.family_member_name);
-            } else {
-                info.el.style.backgroundColor = '#3788d8';
-                info.el.style.borderColor = '#3788d8';
-            }
-            // Zorg dat de titel volledig wordt weergegeven
-            const titleEl = info.el.querySelector('.fc-event-title');
-            if (titleEl) {
-                titleEl.style.whiteSpace = 'normal';
-                titleEl.style.overflow = 'visible';
-                titleEl.style.textOverflow = 'clip';
-            }
+            // Color
+            const accent = info.event.extendedProps.familyMemberName
+                ? stringToColor(info.event.extendedProps.familyMemberName)
+                : '#3788d8';
+            info.el.style.backgroundColor = accent;
+            info.el.style.borderColor = accent;
+
+            // Clear
+            info.el.innerHTML = '';
+
+            // Container
+            const container = document.createElement('div');
+
+            // Title
+            const title = document.createElement('div');
+            title.classList.add('fc-event-title');
+            title.innerText = info.event.title;
+            container.appendChild(title);
+
+            // Meta (start–end + who)
+            const meta = document.createElement('div');
+            meta.classList.add('fc-event-meta');
+            const pad = n => String(n).padStart(2,'0');
+            const s = info.event.start, e = info.event.end;
+            const when = `${pad(s.getHours())}:${pad(s.getMinutes())}` +
+                         (e ? `–${pad(e.getHours())}:${pad(e.getMinutes())}` : '');
+            const isMe = info.event.extendedProps.userId === window.CURRENT_USER_ID;
+            const who  = isMe ? '(me)' : (info.event.extendedProps.userName || '');
+            meta.innerText = [when, who].filter(Boolean).join(' ');
+            container.appendChild(meta);
+
+            // Append
+            info.el.appendChild(container);
         },
+
+
         eventClick: function(info) {
             if (!info.event.extendedProps.family_member_name) {
                 openEventModal(info.event, updateEventUrlTemplate, deleteEventUrlTemplate);

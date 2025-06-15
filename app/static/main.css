@@ -231,3 +231,17 @@ a {
 .edit-delete-wrapper a{
     margin-left: 15px;
 }
+
+.fc-event-title {
+  font-weight: 500;
+  font-size: 0.95em;
+  margin: 0;
+  padding: 0;
+}
+
+.fc-event-meta {
+  font-size: 0.75em;
+  color: #555;
+  margin-top: 2px;
+}
+
