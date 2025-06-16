@@ -3,7 +3,7 @@ import secrets
 import uuid
 
 from flask import session, render_template, flash, redirect, url_for, request, jsonify, abort, send_from_directory, \
-    current_app
+    current_app, Response
 from urllib.parse import urlparse, urljoin
 import sqlalchemy as sa
 from werkzeug.utils import secure_filename
@@ -571,14 +571,17 @@ def register_routes(app):
             user.username = form.username.data
             user.about_me = form.about_me.data
 
-            # 👇 Upload profielfoto als die is meegegeven
+            # Verwerk de profielfoto als die is geüpload
             if form.profile_picture.data:
                 file = form.profile_picture.data
-                filename = secure_filename(file.filename)
-                unique_filename = f"{uuid.uuid4().hex}_{filename}"
-                file_path = os.path.join(current_app.root_path, 'static/profile_pics', unique_filename)
-                file.save(file_path)
-                user.profile_image = unique_filename  # Zorg dat user dit attribuut heeft
+                # Lees de binaire data
+                image_data = file.read()
+                # Sla de MIME-type op
+                mime_type = file.mimetype
+                # Sla de data op in de database
+                user.profile_image_data = image_data
+                user.profile_image_mime = mime_type
+
 
             db.session.commit()
             flash('Your changes have been saved.')
@@ -591,6 +594,17 @@ def register_routes(app):
         return render_template(
             'edit_profile.html', title='Edit Profile', form=form
         )
+
+    @app.route('/profile_image/<int:user_id>')
+    def get_profile_image(user_id):
+        user = db.session.get(User, user_id)
+        if user and user.profile_image_data:
+            return Response(
+                user.profile_image_data,
+                mimetype=user.profile_image_mime
+            )
+        # Fallback naar een standaardafbeelding of Gravatar
+        return redirect(user.avatar(128))
 
     @app.route('/follow/<username>', methods=['POST'])
     def follow(username):

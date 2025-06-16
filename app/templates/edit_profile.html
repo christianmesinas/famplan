@@ -3,24 +3,20 @@
 
 {% block content %}
     <h1>Edit Profile</h1>
-<form method="POST" enctype="multipart/form-data">
-    {{ form.hidden_tag() }}
-
-    <div class="form-group">
-        {{ form.username.label }}<br>
-        {{ form.username(class="form-control") }}
-    </div>
-
-    <div class="form-group">
-        {{ form.about_me.label }}<br>
-        {{ form.about_me(class="form-control") }}
-    </div>
-
-    <div class="form-group">
-        {{ form.profile_picture.label }}<br>
-        {{ form.profile_picture(class="form-control-file") }}
-    </div>
-
-    <button type="submit" class="btn btn-primary">Save</button>
-</form>
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.username.label }}<br>
+            {{ form.username(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.about_me.label }}<br>
+            {{ form.about_me(class="form-control") }}
+        </div>
+        <div class="form-group">
+            {{ form.profile_picture.label }}<br>
+            {{ form.profile_picture(class="form-control-file") }}
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
 {% endblock %}

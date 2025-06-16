@@ -179,6 +179,8 @@ class User(PaginatedAPIMixin, db.Model):
     token: so.Mapped[Optional[str]] = so.mapped_column(sa.String(32), index=True, unique=True)
     token_expiration: so.Mapped[Optional[datetime]]
     profile_image: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128), nullable=True)
+    profile_image_data = db.Column(db.LargeBinary, nullable=True)  # Voor de binaire data van de foto
+    profile_image_mime = db.Column(db.String(64), nullable=True)  # Voor de MIME-type (bijv. image/jpeg)
 
     # Relaties met andere entiteiten
     posts: so.WriteOnlyMapped['Post'] = so.relationship(back_populates='author')
@@ -247,10 +249,12 @@ class User(PaginatedAPIMixin, db.Model):
 
     # Bestaande methodes (avatar, follow, unread_message_count, etc.) hieronder…
     def avatar(self, size):
-        if self.profile_image:
-            return url_for('static', filename='profile_pics/' + self.profile_image)
+        if self.profile_image_data:  # Als er een foto in de database staat
+            return url_for('get_profile_image', user_id=self.id, _external=True)
+        # Fallback naar Gravatar
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
+
 
     def follow(self, user):
         if not self.is_following(user):
