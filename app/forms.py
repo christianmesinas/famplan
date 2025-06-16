@@ -61,7 +61,7 @@ class FamilyForm(FlaskForm):
 class InviteForm(FlaskForm):
     """Form to generate (or re-generate) an invite token."""
     invited_email = StringField(
-        'Invitee email (optional)',
+        'Invite email (optional)',
         validators=[Length(max=120)]
     )
     submit = SubmitField('Generate Invite')
@@ -77,4 +77,4 @@ class JoinForm(FlaskForm):
 class EditFamilyForm(FlaskForm):
     """Form to edit a Family."""
     name = StringField('Family name', validators=[DataRequired(), Length(1, 64)])
-    submit = SubmitField('Save')
+    rename = SubmitField('Save')

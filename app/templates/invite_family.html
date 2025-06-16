@@ -8,7 +8,7 @@
   {{ edit_form.hidden_tag() }}
   <div class="input-group">
     {{ edit_form.name(class="form-control", value=family.name) }}
-    <button type="submit" class="btn btn-primary">{{ edit_form.submit.label }}</button>
+    {{ edit_form.rename(class="btn btn-primary") }}
   </div>
 </form>
 

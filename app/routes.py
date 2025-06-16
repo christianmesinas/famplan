@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 from app import db, oauth
 from app.forms import (
     PostForm, EditProfileForm, EmptyForm, MessageForm,
-    FamilyForm, InviteForm, JoinForm
+    FamilyForm, InviteForm, JoinForm, EditFamilyForm
 )
 from app.models import (
     User, Post, Message, Notification,
@@ -119,15 +119,17 @@ def register_routes(app):
 
         form = InviteForm()
         edit_form = EditFamilyForm()
+        if request.method == 'GET':
+            edit_form.name.data = fam.name
 
         # Familie naam aanpassen
-        if edit_form.submit.data and edit_form.validate_on_submit():
+        if edit_form.rename.data and edit_form.validate_on_submit():
             fam.name = edit_form.name.data
             db.session.commit()
             flash('Family name updated!', 'success')
             return redirect(url_for('invite_family', family_id=fam.id))
 
-        if form.validate_on_submit():
+        if form.submit.data and form.validate_on_submit():
             # Maak een nieuwe token met 7 dagen geldigheid
             token   = secrets.token_urlsafe(16)
             expires = datetime.now(timezone.utc) + timedelta(days=7)
@@ -175,9 +177,9 @@ def register_routes(app):
             'invite_family.html',
             family     = fam,
             form       = form,
+            edit_form  = edit_form,
             join_url   = join_url,
-            expires_at = (latest.expires_at if latest else None),
-            edit_form=edit_form
+            expires_at = (latest.expires_at if latest else None)
         )
 
     # ------------------------------------------------------------------
