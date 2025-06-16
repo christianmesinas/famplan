@@ -37,7 +37,7 @@ class EmptyForm(FlaskForm):
 # Formulier om een nieuwe post te maken
 class PostForm(FlaskForm):
     post = TextAreaField('Say something', validators=[
-        DataRequired(), Length(min=1, max=520)])
+        DataRequired(), Length(min=1, max=499)], render_kw={'maxlength': 499})
     family = SelectField('Post to Family', coerce=int)
     submit = SubmitField('Submit')
 
