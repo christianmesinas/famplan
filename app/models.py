@@ -52,7 +52,7 @@ followers = sa.Table(
 class Family(db.Model):
     """Vertegenwoordigt een gezinsgroep waartoe meerdere gebruikers behoren."""
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    name: so.Mapped[str] = so.mapped_column(sa.String(64), unique=True, nullable=False)
+    name: so.Mapped[str] = so.mapped_column(sa.String(64), nullable=False)
 
     # relatie naar FamilyInvite
     invites: so.Mapped[list['FamilyInvite']] = so.relationship(
@@ -78,13 +78,6 @@ class Family(db.Model):
         'user'         # haalt het user-object uit elke membership
     )
     # ────────────────────────────────────────────────────────────────────────
-
-    # (oude code, nu commentaar—wordt niet meer gebruikt)
-    # members: so.WriteOnlyMapped['User'] = so.relationship(
-    #     'User',
-    #     secondary='membership',
-    #     back_populates='families'
-    # )
 
 class Membership(db.Model):
     """
@@ -226,13 +219,6 @@ class User(PaginatedAPIMixin, db.Model):
         'family'      # haalt het family-object uit elke membership
     )
     # ────────────────────────────────────────────────────────────────────────
-
-    # (oude manier, nu commentaar—niet meer gebruikt)
-    # families: so.WriteOnlyMapped['Family'] = so.relationship(
-    #     'Family',
-    #     secondary='membership',
-    #     back_populates='members'
-    # )
 
     # Berichten-relaties
     messages_sent: so.WriteOnlyMapped['Message'] = so.relationship(
