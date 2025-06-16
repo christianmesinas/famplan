@@ -76,40 +76,53 @@ function initializeCalendar() {
         editable: true,
         selectable: true,
         eventDidMount: function(info) {
-            // Color
-            const accent = info.event.extendedProps.familyMemberName
-                ? stringToColor(info.event.extendedProps.familyMemberName)
-                : '#3788d8';
-            info.el.style.backgroundColor = accent;
-            info.el.style.borderColor = accent;
+          const accent = info.event.extendedProps.familyMemberName
+            ? stringToColor(info.event.extendedProps.familyMemberName)
+            : '#3788d8';
+          info.el.style.backgroundColor = accent;
+          info.el.style.borderColor     = accent;
 
-            // Clear
-            info.el.innerHTML = '';
+          //clear any default HTML
+          info.el.innerHTML = '';
 
-            // Container
-            const container = document.createElement('div');
+          //build our own container
+          const container = document.createElement('div');
 
-            // Title
-            const title = document.createElement('div');
-            title.classList.add('fc-event-title');
-            title.innerText = info.event.title;
-            container.appendChild(title);
+          // — title row
+          const title = document.createElement('div');
+          title.classList.add('fc-event-title');
+          title.innerText = info.event.title;
+          container.appendChild(title);
 
-            // Meta (start–end + who)
-            const meta = document.createElement('div');
-            meta.classList.add('fc-event-meta');
-            const pad = n => String(n).padStart(2,'0');
-            const s = info.event.start, e = info.event.end;
-            const when = `${pad(s.getHours())}:${pad(s.getMinutes())}` +
-                         (e ? `–${pad(e.getHours())}:${pad(e.getMinutes())}` : '');
-            const isMe = info.event.extendedProps.userId === window.CURRENT_USER_ID;
-            const who  = isMe ? '(me)' : (info.event.extendedProps.userName || '');
-            meta.innerText = [when, who].filter(Boolean).join(' ');
-            container.appendChild(meta);
+          // — meta row (start–end + who), using FC’s own formatter
+          const meta = document.createElement('div');
+          meta.classList.add('fc-event-meta');
 
-            // Append
-            info.el.appendChild(container);
+          // format start time according to your calendar’s locale & timezone
+          const whenStart = info.view.calendar.formatDate(
+            info.event.start,
+            { hour: '2-digit', minute: '2-digit', hour12: false }
+          );
+          // optionally format end time, if present
+          const whenEnd = info.event.end
+            ? info.view.calendar.formatDate(
+                info.event.end,
+                { hour: '2-digit', minute: '2-digit', hour12: false }
+              )
+            : null;
+          const when = whenEnd ? `${whenStart}–${whenEnd}` : whenStart;
+
+          // who: compare against the injected CURRENT_USER_ID
+          const isMe = info.event.extendedProps.userId === window.CURRENT_USER_ID;
+          const who  = isMe ? '(me)' : (info.event.extendedProps.userName || '');
+
+          meta.innerText = [when, who].filter(Boolean).join(' ');
+          container.appendChild(meta);
+
+          //append it all
+          info.el.appendChild(container);
         },
+
 
 
         eventClick: function(info) {
