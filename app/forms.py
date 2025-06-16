@@ -4,6 +4,8 @@ from wtforms.validators import ValidationError, DataRequired, Length
 import sqlalchemy as sa
 from app import db
 from app.models import User
+from flask_wtf.file import FileField, FileAllowed
+
 
 # Formulier om het profiel van een gebruiker te bewerken
 class EditProfileForm(FlaskForm):
@@ -12,6 +14,8 @@ class EditProfileForm(FlaskForm):
     about_me = TextAreaField('About me',
                              validators=[Length(min=0, max=140)])
     submit = SubmitField('Submit')
+    profile_picture = FileField('Profielfoto', validators=[FileAllowed(['jpg', 'jpeg', 'png'], 'Alleen afbeeldingen zijn toegestaan.')])
+
 
     def __init__(self, original_username, *args, **kwargs):
         super().__init__(*args, **kwargs)

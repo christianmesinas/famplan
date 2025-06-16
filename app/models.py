@@ -178,6 +178,7 @@ class User(PaginatedAPIMixin, db.Model):
     last_message_read_time: so.Mapped[Optional[datetime]]
     token: so.Mapped[Optional[str]] = so.mapped_column(sa.String(32), index=True, unique=True)
     token_expiration: so.Mapped[Optional[datetime]]
+    profile_image: so.Mapped[Optional[str]] = so.mapped_column(sa.String(128), nullable=True)
 
     # Relaties met andere entiteiten
     posts: so.WriteOnlyMapped['Post'] = so.relationship(back_populates='author')
@@ -246,6 +247,8 @@ class User(PaginatedAPIMixin, db.Model):
 
     # Bestaande methodes (avatar, follow, unread_message_count, etc.) hieronder…
     def avatar(self, size):
+        if self.profile_image:
+            return url_for('static', filename='profile_pics/' + self.profile_image)
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
 

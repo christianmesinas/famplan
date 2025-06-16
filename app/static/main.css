@@ -248,3 +248,7 @@ a {
   color: #d0d0d0;
   margin-top: 2px;
 }
+
+.profile-img tbody tr td a img{
+    max-width: 70px;
+}

@@ -1,8 +1,13 @@
 import os
 import secrets
-from flask import session, render_template, flash, redirect, url_for, request, jsonify, abort, send_from_directory
+import uuid
+
+from flask import session, render_template, flash, redirect, url_for, request, jsonify, abort, send_from_directory, \
+    current_app
 from urllib.parse import urlparse, urljoin
 import sqlalchemy as sa
+from werkzeug.utils import secure_filename
+
 from app import db, oauth
 from app.forms import (
     PostForm, EditProfileForm, EmptyForm, MessageForm,
@@ -504,17 +509,31 @@ def register_routes(app):
     def edit_profile():
         if 'user' not in session:
             return redirect(url_for('login'))
+
         user = get_current_user()
         form = EditProfileForm(user.username)
+
         if form.validate_on_submit():
             user.username = form.username.data
             user.about_me = form.about_me.data
+
+            # 👇 Upload profielfoto als die is meegegeven
+            if form.profile_picture.data:
+                file = form.profile_picture.data
+                filename = secure_filename(file.filename)
+                unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                file_path = os.path.join(current_app.root_path, 'static/profile_pics', unique_filename)
+                file.save(file_path)
+                user.profile_image = unique_filename  # Zorg dat user dit attribuut heeft
+
             db.session.commit()
             flash('Your changes have been saved.')
             return redirect(url_for('edit_profile'))
+
         elif request.method == 'GET':
             form.username.data = user.username
             form.about_me.data = user.about_me
+
         return render_template(
             'edit_profile.html', title='Edit Profile', form=form
         )
