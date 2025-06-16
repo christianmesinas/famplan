@@ -301,9 +301,14 @@ def events():
                         continue
 
     # Combineer en formatteer evenementen
+    added_event_ids = set()
     all_events = user_events + family_events
     formatted_events = []
     for event in all_events:
+        if event['id'] in added_event_ids:
+            continue  # sla de duplicatie post over
+        added_event_ids.add(event['id'])
+
         start = event['start'].get('dateTime', event['start'].get('date'))
         end = event['end'].get('dateTime', event['end'].get('date'))
         formatted_events.append({
