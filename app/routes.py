@@ -1,6 +1,7 @@
 import os
 import secrets
 import uuid
+from zoneinfo import ZoneInfo
 
 from flask import session, render_template, flash, redirect, url_for, request, jsonify, abort, send_from_directory, \
     current_app, Response
@@ -509,6 +510,12 @@ def register_routes(app):
         # ——————————————————————————————————————————————————————————
         # 7) Render the chat template
         # ——————————————————————————————————————————————————————————
+
+        local_tz = ZoneInfo('Europe/Amsterdam')
+        for post in posts.items:
+            # attach a new attribute for the template
+            post.local_timestamp = post.timestamp.astimezone(local_tz)
+
         return render_template(
             'chat.html',
             conversations=conversations,
