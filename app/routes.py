@@ -424,47 +424,101 @@ def register_routes(app):
             db.session.commit()
         return jsonify({'message': 'User created'}), 201
 
+
     @app.route('/', methods=['GET', 'POST'])
     @app.route('/index', methods=['GET', 'POST'])
     def index():
+        # ——————————————————————————————————————————————————————————
+        # 1) Authentication guard
+        # ——————————————————————————————————————————————————————————
         if 'user' not in session or get_current_user() is None:
             session.clear()
             return render_template('landings.html')
         user = get_current_user()
-        form = PostForm()
-        # Toont families van de user in dropdown
-        families = user.families
-        form.family.choices = [(-1, 'Alleen ik')] + [(f.id, f.name) for f in families]
-        if form.validate_on_submit():
-            selected_family_id = form.family.data
-            family = None if selected_family_id == -1 else db.session.get(Family, selected_family_id)
 
-            post = Post(body=form.post.data, author=user, family=family)
-            db.session.add(post)
-            db.session.commit()
-            flash('Your post is now live!')
-            return redirect(url_for('index'))
+        # ——————————————————————————————————————————————————————————
+        # 2) Build conversations overview
+        #    One entry per Family the user belongs to, plus its last Post
+        # ——————————————————————————————————————————————————————————
+        conversations = []
+        for fam in user.families:
+            last_post = db.session.scalar(
+                sa.select(Post)
+                .where(Post.family_id == fam.id)
+                .order_by(Post.timestamp.desc())
+                .limit(1)
+            )
+            conversations.append({
+                'family': fam,
+                'last_post': last_post
+            })
+
+        # ——————————————————————————————————————————————————————————
+        # 3) If no family_id → show conversations list
+        # ——————————————————————————————————————————————————————————
         family_id = request.args.get('family_id', type=int)
+        if not family_id:
+            return render_template('conversations.html',
+                                   conversations=conversations)
+
+        # ——————————————————————————————————————————————————————————
+        # 4) Otherwise: Chat mode for a specific family
+        #    Verify the family exists and the user is a member
+        # ——————————————————————————————————————————————————————————
+        current_family = db.session.get(Family, family_id)
+        if not current_family:
+            abort(404)
+        # ensure membership
+        if not any(m.family_id == family_id for m in user.memberships):
+            abort(403)
+
+        # ——————————————————————————————————————————————————————————
+        # 5) PostForm handling
+        # ——————————————————————————————————————————————————————————
+        form = PostForm()
+        form.family.choices = [(-1, 'Only Me')] + [
+            (f.id, f.name) for f in user.families
+        ]
+        # ⬇️ Force the family field to the “current” chat
+        form.family.data = current_family.id
+
+        if form.validate_on_submit():
+            selected = form.family.data
+            fam_id = None if selected == -1 else selected
+            p = Post(
+                body=form.post.data,
+                author=user,
+                family_id=fam_id
+            )
+            db.session.add(p)
+            db.session.commit()
+            # after posting, stay in the same chat
+            return redirect(url_for('index', family_id=family_id))
+
+        # ——————————————————————————————————————————————————————————
+        # 6) Paginate this family’s posts
+        # ——————————————————————————————————————————————————————————
         page = request.args.get('page', 1, type=int)
-        if family_id:
-            posts_query = Post.query.filter_by(family_id=family_id)
-        else:
-            posts_query = user.following_posts()
         posts = db.paginate(
-            posts_query, page=page,
-            per_page=app.config['POSTS_PER_PAGE'], error_out=False
+            Post.query.filter_by(family_id=family_id),
+            page=page,
+            per_page=app.config['POSTS_PER_PAGE'],
+            error_out=False
         )
-        next_url = url_for('index', page=posts.next_num) if posts.has_next else None
-        prev_url = url_for('index', page=posts.prev_num) if posts.has_prev else None
+
+        # ——————————————————————————————————————————————————————————
+        # 7) Render the chat template
+        # ——————————————————————————————————————————————————————————
         return render_template(
-            'index.html',
-            title='Home',
+            'chat.html',
+            conversations=conversations,
+            current_family=current_family,
             form=form,
             posts=posts.items,
-            families=families,
-            selected_family_id=family_id,
-            next_url=next_url,
-            prev_url=prev_url
+            next_url=url_for('index', family_id=family_id, page=posts.next_num)
+            if posts.has_next else None,
+            prev_url=url_for('index', family_id=family_id, page=posts.prev_num)
+            if posts.has_prev else None
         )
 
     @app.route('/explore')
