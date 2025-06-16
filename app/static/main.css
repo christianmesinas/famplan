@@ -265,7 +265,7 @@ a {
 /* selected group chat */
 .list-group-item.active {
     color: #d0d0d0;
-    background: #fd5c00;
+    background: linear-gradient(rgba(255, 94, 0, 1), rgba(207, 0, 0, 1));
 }
 
 /* Chat bubbles */
