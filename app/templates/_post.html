@@ -15,7 +15,7 @@
                 {{ post.author.username }}
             </a>
             {% endset %}
-            {{ user_link }} said {{ moment(post.timestamp).fromNow() }}
+            {{ user_link }} said {{ moment(Post.created_at).fromNow() }}
             </div>
             <div class="edit-delete-wrapper">
             {% if get_current_user() and get_current_user().id == post.author.id %}
