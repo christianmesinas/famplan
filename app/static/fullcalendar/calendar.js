@@ -38,16 +38,26 @@ function initializeCalendar() {
             hour12: false
         },
         events: function(fetchInfo, successCallback, failureCallback) {
-            const url = eventsUrl + (familySelect.value ? `?family_id=${familySelect.value}` : '');
+            // build query params: always include the current view’s start & end,
+            // plus an optional family_id filter
+            const params = new URLSearchParams({
+                start: fetchInfo.startStr,
+                end:   fetchInfo.endStr
+            });
+            if (familySelect.value) {
+                params.set('family_id', familySelect.value);
+            }
+            const url = `${eventsUrl}?${params.toString()}`;
+
             console.log('Fetching events from:', url);
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     console.log('Received events:', data);
-                    // Verwerk titels om voorvoegsels te verwijderen
+                    // Optionally strip any prefix from titles
                     data.forEach(event => {
                         if (event.title) {
-                            event.title = event.title.replace(/^(.*?): /, '');
+                            event.title = event.title.replace(/^(.*?):\s*/, '');
                         }
                     });
                     successCallback(data);
@@ -57,25 +67,75 @@ function initializeCalendar() {
                     failureCallback(error);
                 });
         },
+
+       // render title on top, meta (time • user) below
+        eventContent: function(arg) {
+            let titleEl = document.createElement('div');
+            titleEl.classList.add('fc-event-title');
+            titleEl.innerText = arg.event.title;
+
+            let metaEl = document.createElement('div');
+            metaEl.classList.add('fc-event-meta');
+            const timeText = arg.timeText;
+            const isMe = arg.event.extendedProps.userId === window.CURRENT_USER_ID;
+            const userName = isMe ? '(me)' : arg.event.extendedProps.userName;
+            metaEl.innerText = `${timeText} • ${userName}`;
+
+            return { domNodes: [ titleEl, metaEl ] };
+        },
+
         editable: true,
         selectable: true,
         eventDidMount: function(info) {
-            console.log('Rendering event:', info.event);
-            if (info.event.extendedProps.family_member_name) {
-                info.el.style.backgroundColor = stringToColor(info.event.extendedProps.family_member_name);
-                info.el.style.borderColor = stringToColor(info.event.extendedProps.family_member_name);
-            } else {
-                info.el.style.backgroundColor = '#3788d8';
-                info.el.style.borderColor = '#3788d8';
-            }
-            // Zorg dat de titel volledig wordt weergegeven
-            const titleEl = info.el.querySelector('.fc-event-title');
-            if (titleEl) {
-                titleEl.style.whiteSpace = 'normal';
-                titleEl.style.overflow = 'visible';
-                titleEl.style.textOverflow = 'clip';
-            }
+          const accent = info.event.extendedProps.familyMemberName
+            ? stringToColor(info.event.extendedProps.familyMemberName)
+            : '#3788d8';
+          info.el.style.backgroundColor = accent;
+          info.el.style.borderColor     = accent;
+
+          //clear any default HTML
+          info.el.innerHTML = '';
+
+          //build our own container
+          const container = document.createElement('div');
+
+          // — title row
+          const title = document.createElement('div');
+          title.classList.add('fc-event-title');
+          title.innerText = info.event.title;
+          container.appendChild(title);
+
+          // — meta row (start–end + who), using FC’s own formatter
+          const meta = document.createElement('div');
+          meta.classList.add('fc-event-meta');
+
+          // format start time according to your calendar’s locale & timezone
+          const whenStart = info.view.calendar.formatDate(
+            info.event.start,
+            { hour: '2-digit', minute: '2-digit', hour12: false }
+          );
+          // optionally format end time, if present
+          const whenEnd = info.event.end
+            ? info.view.calendar.formatDate(
+                info.event.end,
+                { hour: '2-digit', minute: '2-digit', hour12: false }
+              )
+            : null;
+          const when = whenEnd ? `${whenStart}–${whenEnd}` : whenStart;
+
+          // who: compare against the injected CURRENT_USER_ID
+          const isMe = info.event.extendedProps.userId === window.CURRENT_USER_ID;
+          const who  = isMe ? '(me)' : (info.event.extendedProps.userName || '');
+
+          meta.innerText = [when, who].filter(Boolean).join(' ');
+          container.appendChild(meta);
+
+          //append it all
+          info.el.appendChild(container);
         },
+
+
+
         eventClick: function(info) {
             if (!info.event.extendedProps.family_member_name) {
                 openEventModal(info.event, updateEventUrlTemplate, deleteEventUrlTemplate);

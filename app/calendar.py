@@ -290,6 +290,8 @@ def events():
                         )
                         # Voeg metadata toe om de gebruiker en familie te identificeren
                         for event in events:
+                            event['creator_id'] = member.id
+                            event['creator_username'] = member.username
                             event['family_member_name'] = member.username
                             event['family_name'] = family.name
                             family_events.append(event)
@@ -305,16 +307,21 @@ def events():
         start = event['start'].get('dateTime', event['start'].get('date'))
         end = event['end'].get('dateTime', event['end'].get('date'))
         formatted_events.append({
+            # Standard calendar fields
             'id': event['id'],
-            'title': f"{event.get('family_member_name', current_user.username)} ({event.get('family_name', 'Eigen')}): {event['summary']}",
+            'title': event['summary'],
             'start': start,
             'end': end,
             'description': event.get('description', ''),
             'location': event.get('location', ''),
-            'family_member_name': event.get('family_member_name', None),
-            'family_name': event.get('family_name', None),
-            'color': '#ff0000' if event.get('family_member_name') else '#3788d8'
-            # Voorbeeld: andere kleur voor familieleden
+
+            # Custom props for your JS hooks
+            'extendedProps': {
+                'userId':            event.get('creator_id', current_user.id),
+                'userName':          event.get('creator_username', current_user.username),
+                'familyMemberName':  event.get('family_member_name'),
+                'familyName':        event.get('family_name')
+            }
         })
 
     return jsonify(formatted_events)
