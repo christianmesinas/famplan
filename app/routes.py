@@ -458,7 +458,7 @@ def register_routes(app):
             last_post = db.session.scalar(
                 sa.select(Post)
                 .where(Post.family_id == fam.id)
-                .order_by(Post.timestamp.desc())
+                .order_by(Post.created_at.desc())
                 .limit(1)
             )
             conversations.append({
@@ -513,11 +513,13 @@ def register_routes(app):
         # ——————————————————————————————————————————————————————————
         page = request.args.get('page', 1, type=int)
         posts = db.paginate(
-            Post.query.filter_by(family_id=family_id),
+            Post.query.filter_by(family_id=family_id)
+            .order_by(Post.created_at),
             page=page,
             per_page=app.config['POSTS_PER_PAGE'],
             error_out=False
         )
+
 
         # ——————————————————————————————————————————————————————————
         # 7) Render the chat template
@@ -526,7 +528,7 @@ def register_routes(app):
         local_tz = ZoneInfo('Europe/Amsterdam')
         for post in posts.items:
             # attach a new attribute for the template
-            post.local_timestamp = post.timestamp.astimezone(local_tz)
+            post.local_timestamp = Post.created_at.astimezone(local_tz)
 
         return render_template(
             'chat.html',
@@ -546,7 +548,7 @@ def register_routes(app):
             return redirect(url_for('login'))
         user = db.first_or_404(sa.select(User).where(User.username == username))
         page = request.args.get('page', 1, type=int)
-        query = user.posts.select().order_by(Post.timestamp.desc())
+        query = user.posts.select().order_by(Post.created_at.desc())
         posts = db.paginate(
             query, page=page,
             per_page=app.config['POSTS_PER_PAGE'], error_out=False
