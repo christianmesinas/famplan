@@ -1,4 +1,3 @@
-// Read the logged-in user’s ID from the meta tag (or null if not present)
 const userIdMeta = document.querySelector('meta[name="current-user-id"]');
 window.CURRENT_USER_ID = userIdMeta && userIdMeta.content
   ? Number(userIdMeta.content)
@@ -25,21 +24,19 @@ function initializeCalendar() {
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay'
         },
-        locale: 'nl', // Toegevoegd: Nederlandse locale voor 24-uursnotatie en NL-taal
-        timeZone: 'Europe/Amsterdam', // Toegevoegd: Tijdzone voor CEST
-        slotLabelFormat: { // Toegevoegd: 24-uursnotatie voor tijdlabels in week/dag-weergaven
+        locale: 'nl',
+        timeZone: 'Europe/Amsterdam',
+        slotLabelFormat: {
             hour: '2-digit',
             minute: '2-digit',
             hour12: false
         },
-        eventTimeFormat: { // Toegevoegd: 24-uursnotatie voor evenementtijden
+        eventTimeFormat: {
             hour: '2-digit',
             minute: '2-digit',
             hour12: false
         },
         events: function(fetchInfo, successCallback, failureCallback) {
-            // build query params: always include the current view’s start & end,
-            // plus an optional family_id filter
             const params = new URLSearchParams({
                 start: fetchInfo.startStr,
                 end:   fetchInfo.endStr
@@ -54,7 +51,6 @@ function initializeCalendar() {
                 .then(response => response.json())
                 .then(data => {
                     console.log('Received events:', data);
-                    // Optionally strip any prefix from titles
                     data.forEach(event => {
                         if (event.title) {
                             event.title = event.title.replace(/^(.*?):\s*/, '');
@@ -68,7 +64,6 @@ function initializeCalendar() {
                 });
         },
 
-       // render title on top, meta (time • user) below
         eventContent: function(arg) {
             let titleEl = document.createElement('div');
             titleEl.classList.add('fc-event-title');
@@ -93,28 +88,22 @@ function initializeCalendar() {
           info.el.style.backgroundColor = accent;
           info.el.style.borderColor     = accent;
 
-          //clear any default HTML
           info.el.innerHTML = '';
 
-          //build our own container
           const container = document.createElement('div');
 
-          // — title row
           const title = document.createElement('div');
           title.classList.add('fc-event-title');
           title.innerText = info.event.title;
           container.appendChild(title);
 
-          // — meta row (start–end + who), using FC’s own formatter
           const meta = document.createElement('div');
           meta.classList.add('fc-event-meta');
 
-          // format start time according to your calendar’s locale & timezone
           const whenStart = info.view.calendar.formatDate(
             info.event.start,
             { hour: '2-digit', minute: '2-digit', hour12: false }
           );
-          // optionally format end time, if present
           const whenEnd = info.event.end
             ? info.view.calendar.formatDate(
                 info.event.end,
@@ -123,44 +112,40 @@ function initializeCalendar() {
             : null;
           const when = whenEnd ? `${whenStart}–${whenEnd}` : whenStart;
 
-          // who: compare against the injected CURRENT_USER_ID
           const isMe = info.event.extendedProps.userId === window.CURRENT_USER_ID;
           const who  = isMe ? '(me)' : (info.event.extendedProps.userName || '');
 
           meta.innerText = [when, who].filter(Boolean).join(' ');
           container.appendChild(meta);
 
-          //append it all
           info.el.appendChild(container);
         },
 
-
-
         eventClick: function(info) {
-            if (!info.event.extendedProps.family_member_name) {
-                openEventModal(info.event, updateEventUrlTemplate, deleteEventUrlTemplate);
-            } else {
-                alert('Dit evenement is van een familielid en kan niet worden bewerkt.');
+            if (info.event.extendedProps.userId !== window.CURRENT_USER_ID) {
+                alert('Dit evenement is van een ander en kan niet worden aangepast.');
+                return;
             }
+            openEventModal(info.event, updateEventUrlTemplate, deleteEventUrlTemplate);
         },
         select: function(info) {
             openEventModal(null, createEventUrl, null, info.startStr, info.endStr);
         },
         eventDrop: function(info) {
-            if (!info.event.extendedProps.family_member_name) {
-                updateEvent(info.event, updateEventUrlTemplate.replace('EVENT_ID', info.event.id));
-            } else {
+            if (info.event.extendedProps.userId !== window.CURRENT_USER_ID) {
                 info.revert();
-                alert('Dit evenement is van een familielid en kan niet worden bewerkt.');
+                alert('Dit evenement is van een ander en kan niet worden aangepast.');
+                return;
             }
+            updateEvent(info.event, updateEventUrlTemplate.replace('EVENT_ID', info.event.id));
         },
         eventResize: function(info) {
-            if (!info.event.extendedProps.family_member_name) {
-                updateEvent(info.event, updateEventUrlTemplate.replace('EVENT_ID', info.event.id));
-            } else {
+            if (info.event.extendedProps.userId !== window.CURRENT_USER_ID) {
                 info.revert();
-                alert('Dit evenement is van een familielid en kan niet worden bewerkt.');
+                alert('Dit evenement is van een ander en kan niet worden aangepast.');
+                return;
             }
+            updateEvent(info.event, updateEventUrlTemplate.replace('EVENT_ID', info.event.id));
         }
     });
 
@@ -173,7 +158,9 @@ function loadFamilyMembers(url) {
         .then(data => {
             const select = document.getElementById('eventFamilyMembers');
             select.innerHTML = ''; // Leeg de lijst
-            data.forEach(member => {
+            // Filter op unieke e-mails om eventuele duplicaten te vermijden
+            const uniqueMembers = Array.from(new Map(data.map(member => [member.email, member])).values());
+            uniqueMembers.forEach(member => {
                 const option = document.createElement('option');
                 option.value = member.email;
                 option.textContent = member.username;
@@ -202,7 +189,7 @@ function openEventModal(event, createOrUpdateUrl, deleteUrl, startStr, endStr) {
 
     form.reset();
     eventIdInput.value = '';
-    familyMembers.selectedOptions = []; // Reset geselecteerde familieleden
+    familyMembers.selectedOptions = [];
 
     if (event) {
         modalTitle.textContent = 'Edit Event';
