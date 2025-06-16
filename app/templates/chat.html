@@ -61,7 +61,9 @@
               <div class="chat-meta mb-1">
                 <span class="chat-author">{{ post.author.username }}</span>
                 &bull;
-                <span class="chat-time">{{ post.timestamp.strftime('%-d %b %H:%M') }}</span>
+                <small class="text-muted">
+                  {{ post.local_timestamp.strftime('%-d %b %H:%M') }}
+                </small>
               </div>
               <div class="chat-text">{{ post.body }}</div>
             </div>
