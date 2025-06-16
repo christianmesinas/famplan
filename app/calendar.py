@@ -331,63 +331,100 @@ def events():
 
     return jsonify(formatted_events)
 
-
 @bp.route('/calendar/event/<event_id>', methods=['PUT'])
-@calendar_auth_required  # Vereist dat de gebruiker is ingelogd en referenties heeft
+@calendar_auth_required
 def update_event(event_id):
+    logger = logging.getLogger(__name__)
     current_user = get_current_user()
     creds = get_calendar_credentials(current_user.id)
     creds_dict = credentials_to_dict(creds)
 
-    data = request.json
-    service = GoogleCalendarService.get_calendar_service(creds_dict)
+    if not creds_dict:
+        logger.warning("Geen referenties voor huidige gebruiker")
+        return jsonify({'error': 'Google Calendar niet geautoriseerd'}), 401
 
-    event = service.events().get(calendarId='primary', eventId=event_id).execute()
+    try:
+        service = GoogleCalendarService.get_calendar_service(creds_dict)
+        event = service.events().get(calendarId='primary', eventId=event_id).execute()
 
-    # Update velden
-    if 'title' in data:
-        event['summary'] = data['title']
-    if 'description' in data:
-        event['description'] = data['description']
-    if 'location' in data:
-        event['location'] = data['location']
-    if 'start' in data:
-        start_datetime = datetime.fromisoformat(data['start'].replace('Z', '+00:00'))
-        event['start'] = {
-            'dateTime': start_datetime.isoformat(),
-            'timeZone': 'UTC'
-        }
-    if 'end' in data:
-        end_datetime = datetime.fromisoformat(data['end'].replace('Z', '+00:00'))
-        event['end'] = {
-            'dateTime': end_datetime.isoformat(),
-            'timeZone': 'UTC'
-        }
-    if 'attendees' in data:
-        event['attendees'] = [{'email': email} for email in data['attendees']]
+        # Controleer of de huidige gebruiker de maker is
+        creator_email = event.get('creator', {}).get('email')
+        if creator_email != current_user.email:
+            logger.warning(f"Gebruiker {current_user.username} probeerde een evenement te bewerken dat niet van hen is: {event_id}")
+            return jsonify({'error': 'Je kunt alleen je eigen evenementen bewerken'}), 403
 
-    # Update event
-    updated_event = GoogleCalendarService.update_event(
-        service,
-        'primary',
-        event_id,
-        event
-    )
+        # Update velden
+        data = request.json
+        if 'title' in data:
+            event['summary'] = data['title']
+        if 'description' in data:
+            event['description'] = data['description']
+        if 'location' in data:
+            event['location'] = data['location']
+        if 'start' in data:
+            start_datetime = datetime.fromisoformat(data['start'].replace('Z', '+00:00'))
+            event['start'] = {
+                'dateTime': start_datetime.isoformat(),
+                'timeZone': 'UTC'
+            }
+        if 'end' in data:
+            end_datetime = datetime.fromisoformat(data['end'].replace('Z', '+00:00'))
+            event['end'] = {
+                'dateTime': end_datetime.isoformat(),
+                'timeZone': 'UTC'
+            }
+        if 'attendees' in data:
+            event['attendees'] = [{'email': email} for email in data['attendees']]
 
-    return jsonify({
-        'id': updated_event['id'],
-        'title': updated_event['summary'],
-        'start': updated_event['start']['dateTime'],
-        'end': updated_event['end']['dateTime']
-    })
+        # Update het evenement
+        updated_event = GoogleCalendarService.update_event(
+            service,
+            'primary',
+            event_id,
+            event
+        )
+
+        logger.info(f"Evenement {event_id} succesvol bijgewerkt door {current_user.username}")
+        return jsonify({
+            'id': updated_event['id'],
+            'title': updated_event['summary'],
+            'start': updated_event['start']['dateTime'],
+            'end': updated_event['end']['dateTime']
+        })
+
+    except Exception as e:
+        logger.error(f"Fout bij bewerken evenement {event_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 
 @bp.route('/calendar/event/<event_id>', methods=['DELETE'])
 @calendar_auth_required
 def delete_event(event_id):
+    logger = logging.getLogger(__name__)
     current_user = get_current_user()
     creds = get_calendar_credentials(current_user.id)
     creds_dict = credentials_to_dict(creds)
-    service = GoogleCalendarService.get_calendar_service(creds_dict)
-    GoogleCalendarService.delete_event(service, 'primary', event_id)
 
-    return jsonify({'success': True})
+    if not creds_dict:
+        logger.warning("Geen referenties voor huidige gebruiker")
+        return jsonify({'error': 'Google Calendar niet geautoriseerd'}), 401
+
+    try:
+        service = GoogleCalendarService.get_calendar_service(creds_dict)
+        event = service.events().get(calendarId='primary', eventId=event_id).execute()
+
+        # Controleer of de huidige gebruiker de maker is
+        creator_email = event.get('creator', {}).get('email')
+        if creator_email != current_user.email:
+            logger.warning(f"Gebruiker {current_user.username} probeerde een evenement te verwijderen dat niet van hen is: {event_id}")
+            return jsonify({'error': 'Je kunt alleen je eigen evenementen verwijderen'}), 403
+
+        # Verwijder het evenement
+        GoogleCalendarService.delete_event(service, 'primary', event_id)
+        logger.info(f"Evenement {event_id} succesvol verwijderd door {current_user.username}")
+        return jsonify({'success': True})
+
+    except Exception as e:
+        logger.error(f"Fout bij verwijderen evenement {event_id}: {e}")
+        return jsonify({'error': str(e)}), 500
