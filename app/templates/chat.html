@@ -44,10 +44,19 @@
       {#— Messages scroll area —#}
       <div class="chat-window border rounded p-3" style="height: 60vh; overflow-y: auto; background: #f9f9f9;">
         {% for post in posts %}
-          {# Determine if this post is from the current user #}
+          {# Is this your own message? #}
           {% set is_me = post.author.id == get_current_user().id %}
 
           <div class="d-flex mb-3 {% if is_me %}justify-content-end{% else %}justify-content-start{% endif %}">
+            {# For others: avatar on left, bubble to right #}
+            {% if not is_me %}
+              <img
+                src="{{ post.author.avatar(32) }}"
+                class="chat-avatar me-2"
+                alt="{{ post.author.username }}’s avatar"
+              >
+            {% endif %}
+
             <div class="chat-bubble {{ 'chat-bubble--me' if is_me else 'chat-bubble--other' }}">
               <div class="chat-meta mb-1">
                 <span class="chat-author">{{ post.author.username }}</span>
@@ -56,9 +65,19 @@
               </div>
               <div class="chat-text">{{ post.body }}</div>
             </div>
+
+            {# For your own messages: bubble on left, avatar on right #}
+            {% if is_me %}
+              <img
+                src="{{ post.author.avatar(32) }}"
+                class="chat-avatar ms-2"
+                alt="Your avatar"
+              >
+            {% endif %}
           </div>
         {% endfor %}
       </div>
+
 
 
       {#— Pagination —#}

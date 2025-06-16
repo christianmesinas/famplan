@@ -271,6 +271,14 @@ a {
   word-wrap: break-word;
 }
 
+/* Avatar next to chat bubbles */
+.chat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 /* Your own messages: right‐aligned, greenish background */
 .chat-bubble--me {
   background-color: #d1e7dd; /* Bootstrap “success” tint */
