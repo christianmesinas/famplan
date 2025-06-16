@@ -280,7 +280,7 @@ a {
 
 /* Others’ messages: left‐aligned, light gray background */
 .chat-bubble--other {
-  background-color: #f8f9fa; /* Bootstrap light */
+  background-color: rgba(252, 92, 0, 0.37); /* Bootstrap light */
   color: #212529;
   border-top-left-radius: 0;
 }
