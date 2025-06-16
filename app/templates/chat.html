@@ -65,11 +65,21 @@
                   {{ post.local_timestamp.strftime('%-d %b %H:%M') }}
                 </small>
               </div>
-              <div class="chat-text">{{ post.body }}</div>
+              <div class="chat-text" id="post{{ post.id }}">{{ post.body }}</div>
             </div>
 
             {# For your own messages: bubble on left, avatar on right #}
             {% if is_me %}
+            <div class="dropdown">
+              <a class="text-muted" href="#" role="button" id="dropdownMenuLink{{ post.id }}"
+              data-bs-toggle="dropdown" aria-expanded="false">
+              ⋮
+              </a>
+               <ul class="dropdown-menu" aria-labelledby="dropdownMenuLink{{ post.id }}">
+                  <li><a class="dropdown-item" href="#" onclick="editPost({{ post.id }}); return false;">Edit</a></li>
+                  <li><a class="dropdown-item text-danger" href="#" onclick="deletePost({{ post.id }}); return false;">Delete</a></li>
+               </ul>
+            </div>
               <img
                 src="{{ post.author.avatar(32) }}"
                 class="chat-avatar ms-2"
@@ -83,4 +93,82 @@
     </div>
   </div>
 </div>
+
+<script>
+function editPost(postId) {
+    const postSpan = document.getElementById('post' + postId);
+    const originalText = postSpan.innerText;
+
+    const textarea = document.createElement('textarea');
+    textarea.value = originalText;
+    textarea.className = 'form-control mb-2';
+    textarea.rows = 3;
+
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Save';
+    saveBtn.className = 'btn btn-sm btn-success me-2';
+    saveBtn.onclick = function () {
+        fetch(`/post/${postId}/edit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ body: textarea.value })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.new_body) {
+                postSpan.innerHTML = data.new_body;
+                restore();
+            } else {
+                alert(data.error || 'Something went wrong');
+            }
+        });
+    };
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.className = 'btn btn-sm btn-secondary';
+    cancelBtn.onclick = restore;
+
+    const parent = postSpan.parentNode;
+    postSpan.style.display = 'none';
+
+    const editorDiv = document.createElement('div');
+    editorDiv.id = 'editor' + postId;
+    editorDiv.appendChild(textarea);
+    editorDiv.appendChild(saveBtn);
+    editorDiv.appendChild(cancelBtn);
+    parent.appendChild(editorDiv);
+
+    function restore() {
+        postSpan.style.display = '';
+        editorDiv.remove();
+    }
+}
+
+function deletePost(postId) {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+
+    fetch(`/post/${postId}/delete`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            const postElem = document.getElementById('post' + postId);
+            if (postElem) postElem.closest('.d-flex').remove();
+        } else {
+            return response.json().then(data => {
+                alert(data.error || "Failed to delete post");
+            });
+        }
+    })
+    .catch(error => {
+        alert("Error deleting post: " + error);
+    });
+}
+</script>
 {% endblock %}
