@@ -1,6 +1,7 @@
 body{
     background: linear-gradient(rgba(255, 94, 0, 1), rgba(207, 0, 0, 1));
     background-repeat: no-repeat;
+    min-height: 100vh;
     padding-bottom: 20px;
 }
 
