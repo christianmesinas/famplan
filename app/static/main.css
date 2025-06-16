@@ -235,7 +235,7 @@ a {
     margin-top: 1rem;
     margin-bottom: 2rem;
 }
-
+/* Calendar page event card related */
 .fc-event-title {
   font-weight: 500;
   font-size: 0.95em;
@@ -247,4 +247,49 @@ a {
   font-size: 0.75em;
   color: #d0d0d0;
   margin-top: 2px;
+}
+
+/* Chats related stuff on index page */
+/* Chat window scroll bar tweaks (optional) */
+.chat-window {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.2) transparent;
+}
+.chat-window::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-window::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+  border-radius: 3px;
+}
+
+/* Chat bubbles */
+.chat-bubble {
+  max-width: 75%;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  word-wrap: break-word;
+}
+
+/* Your own messages: right‐aligned, greenish background */
+.chat-bubble--me {
+  background-color: #d1e7dd; /* Bootstrap “success” tint */
+  color: #0f5132;
+  border-top-right-radius: 0;
+}
+
+/* Others’ messages: left‐aligned, light gray background */
+.chat-bubble--other {
+  background-color: #f8f9fa; /* Bootstrap light */
+  color: #212529;
+  border-top-left-radius: 0;
+}
+
+/* Meta line (author + timestamp) */
+.chat-meta {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+.chat-author {
+  font-weight: 600;
 }
