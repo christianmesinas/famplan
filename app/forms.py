@@ -73,3 +73,8 @@ class JoinForm(FlaskForm):
         validators=[DataRequired(), Length(min=8, max=64)]
     )
     submit = SubmitField('Join Family')
+
+class EditFamilyForm(FlaskForm):
+    """Form to edit a Family."""
+    name = StringField('Family name', validators=[DataRequired(), Length(1, 64)])
+    submit = SubmitField('Save')

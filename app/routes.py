@@ -112,11 +112,20 @@ def register_routes(app):
         current_user = get_current_user()
         fam = Family.query.get_or_404(family_id)
 
-        # Alleen bestaande leden mogen uitnodigingen genereren
+        # Alleen bestaande leden mogen uitnodigingen genereren of de naam aanpassen
         if not any(m.user_id == current_user.id for m in fam.memberships):
             abort(403)
 
         form = InviteForm()
+        edit_form = EditFamilyForm()
+
+        # Familie naam aanpassen
+        if edit_form.submit.data and edit_form.validate_on_submit():
+            fam.name = edit_form.name.data
+            db.session.commit()
+            flash('Family name updated!', 'success')
+            return redirect(url_for('invite_family', family_id=fam.id))
+
         if form.validate_on_submit():
             # Maak een nieuwe token met 7 dagen geldigheid
             token   = secrets.token_urlsafe(16)
@@ -166,7 +175,8 @@ def register_routes(app):
             family     = fam,
             form       = form,
             join_url   = join_url,
-            expires_at = (latest.expires_at if latest else None)
+            expires_at = (latest.expires_at if latest else None),
+            edit_form=edit_form
         )
 
     # ------------------------------------------------------------------
