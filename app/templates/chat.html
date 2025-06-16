@@ -96,6 +96,17 @@
 
 <script>
 function editPost(postId) {
+      const editorDivId = 'editor' + postId;
+      const existingEditor = document.getElementById(editorDivId);
+
+    // Als er al een editor open is voor dit bericht, sluit hem dan (toggle/cancel)
+    if (existingEditor) {
+        existingEditor.remove();
+        const postSpan = document.getElementById('post' + postId);
+        if (postSpan) postSpan.style.display = '';
+        return;
+    }
+
     const postSpan = document.getElementById('post' + postId);
     const originalText = postSpan.innerText;
 
