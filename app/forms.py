@@ -37,14 +37,14 @@ class EmptyForm(FlaskForm):
 # Formulier om een nieuwe post te maken
 class PostForm(FlaskForm):
     post = TextAreaField('Say something', validators=[
-        DataRequired(), Length(min=1, max=140)])
+        DataRequired(), Length(min=1, max=520)])
     family = SelectField('Post to Family', coerce=int)
     submit = SubmitField('Submit')
 
 # Formulier om een privébericht te sturen
 class MessageForm(FlaskForm):
     message = TextAreaField('Message', validators=[
-        DataRequired(), Length(min=1, max=140)])
+        DataRequired(), Length(min=1, max=520)])
     submit = SubmitField('Submit')
 
 # -----------------------------------------------

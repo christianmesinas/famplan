@@ -17,7 +17,7 @@ function initializeCalendar() {
     // Laad familieleden voor het formulier
     loadFamilyMembers(familyMembersUrl);
 
-   calendar = new FullCalendar.Calendar(calendarEl, {
+    calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         headerToolbar: {
             left: 'prev,next today',
@@ -71,54 +71,24 @@ function initializeCalendar() {
 
             let metaEl = document.createElement('div');
             metaEl.classList.add('fc-event-meta');
-            const timeText = arg.timeText;
+            const timeText = arg.timeText; // Gebruikt FullCalendar's geformatteerde tijd (bijv. "14:00–15:00")
             const isMe = arg.event.extendedProps.userId === window.CURRENT_USER_ID;
             const userName = isMe ? '(me)' : arg.event.extendedProps.userName;
             metaEl.innerText = `${timeText} • ${userName}`;
 
-            return { domNodes: [ titleEl, metaEl ] };
+            return { domNodes: [titleEl, metaEl] };
         },
 
         editable: true,
         selectable: true,
         eventDidMount: function(info) {
-          const accent = info.event.extendedProps.familyMemberName
-            ? stringToColor(info.event.extendedProps.familyMemberName)
-            : '#3788d8';
-          info.el.style.backgroundColor = accent;
-          info.el.style.borderColor     = accent;
-
-          info.el.innerHTML = '';
-
-          const container = document.createElement('div');
-
-          const title = document.createElement('div');
-          title.classList.add('fc-event-title');
-          title.innerText = info.event.title;
-          container.appendChild(title);
-
-          const meta = document.createElement('div');
-          meta.classList.add('fc-event-meta');
-
-          const whenStart = info.view.calendar.formatDate(
-            info.event.start,
-            { hour: '2-digit', minute: '2-digit', hour12: false }
-          );
-          const whenEnd = info.event.end
-            ? info.view.calendar.formatDate(
-                info.event.end,
-                { hour: '2-digit', minute: '2-digit', hour12: false }
-              )
-            : null;
-          const when = whenEnd ? `${whenStart}–${whenEnd}` : whenStart;
-
-          const isMe = info.event.extendedProps.userId === window.CURRENT_USER_ID;
-          const who  = isMe ? '(me)' : (info.event.extendedProps.userName || '');
-
-          meta.innerText = [when, who].filter(Boolean).join(' ');
-          container.appendChild(meta);
-
-          info.el.appendChild(container);
+            // Stel alleen de achtergrond- en randkleur in
+            const accent = info.event.extendedProps.familyMemberName
+                ? stringToColor(info.event.extendedProps.familyMemberName)
+                : '#3788d8';
+            info.el.style.backgroundColor = accent;
+            info.el.style.borderColor = accent;
+            // Verwijder de DOM-manipulatie om duplicatie te voorkomen
         },
 
         eventClick: function(info) {
