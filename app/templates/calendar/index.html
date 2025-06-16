@@ -10,7 +10,7 @@
                     <label for="family-select" class="form-label">Selecteer Familie:</label>
                     <select id="family-select" class="form-select" style="width: auto; display: inline-block;">
                         <option value="">Alle Families</option>
-                        {% for family in current_user.families %}
+                        {% for family in get_current_user().families %}
                             <option value="{{ family.id }}">{{ family.name }}</option>
                         {% endfor %}
                     </select>

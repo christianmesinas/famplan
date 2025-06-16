@@ -60,12 +60,6 @@
             </li>
             {% else %}
             <li class="nav-item">
-              <a class="nav-link" aria-current="page" href="{{ url_for('messages') }}">Messages
-                {% set current_user = get_current_user() %}
-                {% set unread_message_count = current_user.unread_message_count() if current_user else 0 %}
-              </a>
-            </li>
-            <li class="nav-item">
               <a class="nav-link" aria-current="page" href="{{ url_for('user', username=get_current_user().username) }}">Profile</a>
             </li>
             <li class="nav-item">

@@ -648,29 +648,6 @@ def register_routes(app):
             return redirect(url_for('user', username=username))
         return redirect(url_for('index'))
 
-    @app.route('/messages')
-    def messages():
-        if 'user' not in session:
-            return redirect(url_for('login'))
-        current_user = get_current_user()
-        current_user.last_message_read_time = datetime.now(timezone.utc)
-        current_user.add_notification('unread_message_count', 0)
-        db.session.commit()
-        page = request.args.get('page', 1, type=int)
-        query = current_user.messages_received.select().order_by(Message.timestamp.desc())
-        messages = db.paginate(
-            query, page=page,
-            per_page=app.config['POSTS_PER_PAGE'], error_out=False
-        )
-        next_url = url_for('messages', page=messages.next_num) if messages.has_next else None
-        prev_url = url_for('messages', page=messages.prev_num) if messages.has_prev else None
-        return render_template(
-            'messages.html',
-            messages=messages.items,
-            next_url=next_url,
-            prev_url=prev_url
-        )
-
     @app.route('/notifications')
     def notifications():
         if 'user' not in session:
