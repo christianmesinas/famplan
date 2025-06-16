@@ -38,16 +38,26 @@ function initializeCalendar() {
             hour12: false
         },
         events: function(fetchInfo, successCallback, failureCallback) {
-            const url = eventsUrl + (familySelect.value ? `?family_id=${familySelect.value}` : '');
+            // build query params: always include the current view’s start & end,
+            // plus an optional family_id filter
+            const params = new URLSearchParams({
+                start: fetchInfo.startStr,
+                end:   fetchInfo.endStr
+            });
+            if (familySelect.value) {
+                params.set('family_id', familySelect.value);
+            }
+            const url = `${eventsUrl}?${params.toString()}`;
+
             console.log('Fetching events from:', url);
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     console.log('Received events:', data);
-                    // Verwerk titels om voorvoegsels te verwijderen
+                    // Optionally strip any prefix from titles
                     data.forEach(event => {
                         if (event.title) {
-                            event.title = event.title.replace(/^(.*?): /, '');
+                            event.title = event.title.replace(/^(.*?):\s*/, '');
                         }
                     });
                     successCallback(data);
@@ -57,6 +67,7 @@ function initializeCalendar() {
                     failureCallback(error);
                 });
         },
+
        // render title on top, meta (time • user) below
         eventContent: function(arg) {
             let titleEl = document.createElement('div');
