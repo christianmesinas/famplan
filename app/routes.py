@@ -1,5 +1,6 @@
+import os
 import secrets
-from flask import session, render_template, flash, redirect, url_for, request, jsonify, abort
+from flask import session, render_template, flash, redirect, url_for, request, jsonify, abort, send_from_directory
 from urllib.parse import urlparse, urljoin
 import sqlalchemy as sa
 from app import db, oauth
@@ -625,7 +626,11 @@ def register_routes(app):
 
     @app.route('/favicon.ico')
     def favicon():
-        return '', 204
+        return send_from_directory(
+            os.path.join(app.root_path, 'static'),
+            'favicon.ico',
+            mimetype='image/vnd.microsoft.icon'
+        )
 
     @app.route('/auth/login')
     def auth_login():
