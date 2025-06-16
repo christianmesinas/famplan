@@ -3,6 +3,14 @@
 
 {% block content %}
   <h1>Invite Members to “{{ family.name }}”</h1>
+ <button class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('edit-name-form').classList.toggle('d-none')">✏️ Edit</button>
+<form method="post" id="edit-name-form" class="d-none mb-4">
+  {{ edit_form.hidden_tag() }}
+  <div class="input-group">
+    {{ edit_form.name(class="form-control", value=family.name) }}
+    <button type="submit" class="btn btn-primary">{{ edit_form.submit.label }}</button>
+  </div>
+</form>
 
   <form method="post">
     {{ form.hidden_tag() }}
