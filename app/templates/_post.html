@@ -24,6 +24,9 @@
             {% endif %}
             </div>
             </div>
+            {% if post.family %}
+                <small class="text-muted">to family: {{ post.family.name }}</small><br>
+            {% endif %}
             <br>
             <span id="post{{ post.id }}">{{ post.body }}</span>
         </td>

@@ -180,7 +180,6 @@ a{
 }
 
 .mb-3{
-    margin-top: 1rem;
     margin-bottom: 2rem !important;
 }
 
@@ -230,4 +229,9 @@ a {
 
 .edit-delete-wrapper a{
     margin-left: 15px;
+}
+
+.form-group{
+    margin-top: 1rem;
+    margin-bottom: 2rem;
 }
