@@ -77,6 +77,14 @@ class Family(db.Model):
         'memberships',  # verwijst naar Membership.user
         'user'         # haalt het user-object uit elke membership
     )
+    # ────────────────────────────────────────────────────────────────────────
+
+    # (oude code, nu commentaar—wordt niet meer gebruikt)
+    # members: so.WriteOnlyMapped['User'] = so.relationship(
+    #     'User',
+    #     secondary='membership',
+    #     back_populates='families'
+    # )
 
 class Membership(db.Model):
     """
@@ -217,6 +225,14 @@ class User(PaginatedAPIMixin, db.Model):
         'memberships',  # verwijzing naar Membership.family
         'family'      # haalt het family-object uit elke membership
     )
+    # ────────────────────────────────────────────────────────────────────────
+
+    # (oude manier, nu commentaar—niet meer gebruikt)
+    # families: so.WriteOnlyMapped['Family'] = so.relationship(
+    #     'Family',
+    #     secondary='membership',
+    #     back_populates='members'
+    # )
 
     # Berichten-relaties
     messages_sent: so.WriteOnlyMapped['Message'] = so.relationship(
@@ -269,7 +285,7 @@ class User(PaginatedAPIMixin, db.Model):
             .join(Author.followers.of_type(Follower), isouter=True)
             .where(sa.or_(Follower.id == self.id, Author.id == self.id))
             .group_by(Post)
-            .order_by(Post.created_at.desc())
+            .order_by(Post.timestamp.desc())
         )
 
     def unread_message_count(self):
@@ -314,22 +330,10 @@ class User(PaginatedAPIMixin, db.Model):
 # Bestaande: Post-model
 class Post(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    body: so.Mapped[str] = so.mapped_column(sa.String(500))
-
-    created_at: so.Mapped[datetime] = so.mapped_column(
-        sa.DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        nullable=False,
-        index=True
+    body: so.Mapped[str] = so.mapped_column(sa.String(140))
+    timestamp: so.Mapped[datetime] = so.mapped_column(
+        index=True, default=lambda: datetime.now(timezone.utc)
     )
-
-    updated_at: so.Mapped[datetime] = so.mapped_column(
-        sa.DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
-        nullable=False
-    )
-
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id), index=True)
     author: so.Mapped[User] = so.relationship(back_populates='posts')
 
