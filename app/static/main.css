@@ -262,6 +262,11 @@ a {
   background: rgba(0,0,0,0.2);
   border-radius: 3px;
 }
+/* selected group chat */
+.list-group-item.active {
+    color: #d0d0d0;
+    background: #fd5c00;
+}
 
 /* Chat bubbles */
 .chat-bubble {
