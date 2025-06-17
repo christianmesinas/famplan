@@ -492,7 +492,7 @@ def register_routes(app):
         form.family.choices = [(-1, 'Only Me')] + [
             (f.id, f.name) for f in user.families
         ]
-        # ⬇️ Force the family field to the “current” chat
+        # Force the family field to the “current” chat
         form.family.data = current_family.id
 
         if form.validate_on_submit():
